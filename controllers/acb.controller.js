@@ -21,13 +21,14 @@ let sql;
 
 // Insert ACB
 
-acdOperations['insert_acb_complaint'] = async (req, res) => {
+acdOperations['insert_acb_complaint'] = async (req, res, file) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(200).json({
             errors: errors.array(), "status": 400
         });
     }
+    
     let {
         applicant_name, applicant_mobile, department_id, district_id, nikay, 
         block_nagar_id, date_of_event, time_of_event, place_of_event, accused_designation, accused_department, latitude, longitute, 
@@ -35,34 +36,6 @@ acdOperations['insert_acb_complaint'] = async (req, res) => {
     } = req.body;
     let created_ip = req.ip;    
     try {
-        // var storage = multer.diskStorage({
-        //     destination: function (req, file, cb) {
-        //         let uploadPath = "./upload_files";
-        //         if (!fs.existsSync(uploadPath)){
-        //         fs.mkdirSync(uploadPath);
-        //         }
-        //         cb(null, uploadPath);
-        //     },
-        //     filename: function (req, file, cb) {
-        //         cb(null, file.fieldname + "-" + Date.now() + path.extname(file.originalname));
-        //     },
-        // });
-        // const storage = multer.diskStorage({
-        //     destination: "./upload_files",
-        //     filename: function(req, file, cb){
-        //       crypto.randomBytes(20, (err, buf) => {
-        //         cb(null, buf.toString("hex") + path.extname(file.originalname))
-        //       })
-        //     }
-        //   });
-        // const upload = multer({
-        //     storage: storage
-        // }).fields([{name: "pdf_file"}, {name: "video_file"},{name:"audio_file"}]);
-        
-        // upload(req, res, (err) => {
-        //     if (err) throw err;
-        // });
-
         sql = `SELECT count(1)+1 AS autoId FROM tbl_complaint_acb`;
         let returnData_autoId = await sqlFunction(sql);
         let generatedComplaintId = "C" + department_id + returnData_autoId[0].autoId.toString().padStart("8", "0");
@@ -76,6 +49,25 @@ acdOperations['insert_acb_complaint'] = async (req, res) => {
             block_nagar_id, date_of_event, time_of_event, place_of_event, accused_designation, accused_department, latitude, longitute, 
             created_by, created_ip]);
         if (returnData.affectedRows != undefined && returnData.affectedRows > 0){
+
+            sql = `INSERT INTO tbl_file_upload_acb(original_file_name, file_type, uploaded_file_name, file_url,file_size,fk_complaint_id,ip_address) 
+                VALUES (?,?,?,?,?,?,?)`;
+            if(file.pdf_file!==undefined)
+            {
+                await sqlFunction(sql, [file.pdf_file[0].originalname, file.pdf_file[0].mimetype, file.pdf_file[0].filename, file.pdf_file[0].path, 
+                    file.pdf_file[0].size,comp_id,created_ip])
+            }
+            if(file.video_file!==undefined)
+            {
+                await sqlFunction(sql, [file.video_file[0].originalname, file.video_file[0].mimetype, file.video_file[0].filename, file.video_file[0].path,
+                    file.video_file[0].size,comp_id,created_ip])
+            }
+            if(file.audio_file!==undefined)
+            {
+                await sqlFunction(sql, [file.audio_file[0].originalname, file.audio_file[0].mimetype, file.audio_file[0].filename, file.audio_file[0].path, 
+                    file.audio_file[0].size,comp_id,created_ip])
+            }
+
             res.send({
                 message: "Complain added successfully",
                 response_status: 200,
