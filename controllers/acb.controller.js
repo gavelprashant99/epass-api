@@ -2,7 +2,6 @@ const connection = require("../config/mysqldb");
 const express = require("express");
 const router = express.Router();
 const {check, validationResult} = require("express-validator");
-
 const acdOperations = [];
 
 function sqlFunction($sql, $params = []) {
@@ -21,6 +20,7 @@ let returnData;
 let sql;
 
 // Insert ACB
+
 acdOperations['insert_acb_complaint'] = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -35,9 +35,36 @@ acdOperations['insert_acb_complaint'] = async (req, res) => {
     } = req.body;
     let created_ip = req.ip;    
     try {
+        // var storage = multer.diskStorage({
+        //     destination: function (req, file, cb) {
+        //         let uploadPath = "./upload_files";
+        //         if (!fs.existsSync(uploadPath)){
+        //         fs.mkdirSync(uploadPath);
+        //         }
+        //         cb(null, uploadPath);
+        //     },
+        //     filename: function (req, file, cb) {
+        //         cb(null, file.fieldname + "-" + Date.now() + path.extname(file.originalname));
+        //     },
+        // });
+        // const storage = multer.diskStorage({
+        //     destination: "./upload_files",
+        //     filename: function(req, file, cb){
+        //       crypto.randomBytes(20, (err, buf) => {
+        //         cb(null, buf.toString("hex") + path.extname(file.originalname))
+        //       })
+        //     }
+        //   });
+        // const upload = multer({
+        //     storage: storage
+        // }).fields([{name: "pdf_file"}, {name: "video_file"},{name:"audio_file"}]);
+        
+        // upload(req, res, (err) => {
+        //     if (err) throw err;
+        // });
+
         sql = `SELECT count(1)+1 AS autoId FROM tbl_complaint_acb`;
         let returnData_autoId = await sqlFunction(sql);
-        console.log(returnData_autoId);
         let generatedComplaintId = "C" + department_id + returnData_autoId[0].autoId.toString().padStart("8", "0");
         
         let comp_id = generatedComplaintId

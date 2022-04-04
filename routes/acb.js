@@ -16,6 +16,7 @@ const operations = require("../controllers/acb.controller");
         .not()
         .isEmpty(),
 ], async (req, res) => {
+    console.log(req.body);
     operations['insert_acb_complaint'](req, res);
 });
 
