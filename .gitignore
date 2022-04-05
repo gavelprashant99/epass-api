@@ -9,6 +9,7 @@
 
 # dependencies
 /node_modules
+/server_creds
 
 # profiling files
 chrome-profiler-events*.json
@@ -49,3 +50,5 @@ Thumbs.db
 /.vs/Node_TNCP/config/applicationhost.config
 config/mysqldb.js
 config/sequelize.js
+config/mongodb.js
+igrs_user
