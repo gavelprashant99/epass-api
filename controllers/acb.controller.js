@@ -30,7 +30,7 @@ acdOperations['insert_acb_complaint'] = async (req, res, file) => {
     }
     
     let {
-        applicant_name, applicant_mobile, department_id, district_id, nikay, 
+        applicant_name, applicant_mobile, applicant_email, department_id, district_id, nikay, 
         block_nagar_id, date_of_event, time_of_event, place_of_event, accused_designation, accused_department, latitude, longitute, 
         created_by
     } = req.body;
@@ -42,10 +42,10 @@ acdOperations['insert_acb_complaint'] = async (req, res, file) => {
         
         let comp_id = generatedComplaintId
 
-        sql = `INSERT INTO tbl_complaint_acb(comp_id, applicant_name, applicant_mobile, department_id, district_id, nikay, 
+        sql = `INSERT INTO tbl_complaint_acb(comp_id, applicant_name, applicant_mobile, applicant_email,department_id, district_id, nikay, 
             block_nagar_id, date_of_event, time_of_event, place_of_event, accused_designation, accused_department, latitude, longitute, 
-            created_by, created_ip) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-        returnData = await sqlFunction(sql,[comp_id, applicant_name, applicant_mobile, department_id, district_id, nikay, 
+            created_by, created_ip) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+        returnData = await sqlFunction(sql,[comp_id, applicant_name, applicant_mobile, applicant_email, department_id, district_id, nikay, 
             block_nagar_id, date_of_event, time_of_event, place_of_event, accused_designation, accused_department, latitude, longitute, 
             created_by, created_ip]);
         if (returnData.affectedRows != undefined && returnData.affectedRows > 0){

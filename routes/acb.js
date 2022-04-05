@@ -8,12 +8,12 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-const maxSize = 200 * 1024 ; // 200 KB
+// const maxSize = 200 * 1024 ; // 200 KB
 
 var storage = multer.diskStorage({
     destination: function (req, file, cb) {
         let uploadPath = "./upload_files";
-        if (!fs.existsSync(uploadPath)){
+        if(!fs.existsSync(uploadPath)){
             fs.mkdirSync(uploadPath);
         }
         let file_path = uploadPath+"/"+"pdf_files";
@@ -71,7 +71,26 @@ router.post("/add_acb_complaint",cpUpload, [
         .isEmpty(),
 ], async (req, res) => {
     const file = req.files;
-    operations['insert_acb_complaint'](req, res, file);
+    let flag = false;
+    if(file.pdf_file[0].size> 5*1024*1024){
+        flag = true;
+        fs.unlinkSync("./"+file.pdf_file[0].path);
+    }
+    if(file.video_file!= undefined && file.pdf_file[0].size> 25*1024*1024){
+        flag = true;
+        fs.unlinkSync("./"+file.video_file[0].path);
+    }
+    if(file.audio_file!= undefined &&  file.pdf_file[0].size> 10*1024*1024){
+        flag = true;   
+        fs.unlinkSync("./"+file.audio_file[0].path);
+    }
+    if(flag)
+    {
+        res.send({ message: "पीडीएफ 5MB, विडियो 25MB और ऑडियो फाइल 10MB तक का ही होना चाहिए", response_status: 400 });
+    }
+    else{
+        operations['insert_acb_complaint'](req, res, file);
+    }
 });
 
 module.exports = router;
