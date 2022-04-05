@@ -59,7 +59,7 @@ operations['get_blocks_panchayat_gram'] = (req, res) => {
                 + "p.Gram_Panchayat_En panchayat_en FROM master_panchayats p WHERE p.LGD_DistrictCode = ? AND p.Std_Block_Code = ? order by p.Gram_Panchayat_Hi ASC";
             whereData = [distt_lgd_code, block_lgd_code];
         } else if (distt_lgd_code > 0) {
-            sql = "SELECT b.Std_Block_Code block_lgd_code ,b.LGD_BlockCode `block_code`,b.Block_Name `block_name_hin`,b.Block_Name_En `block_name_en`"
+            sql = "SELECT b.Std_Block_Code std_block_code ,b.LGD_BlockCode block_lgd_code,b.Block_Name `block_name_hin`,b.Block_Name_En `block_name_en`"
                 + " FROM master_blocks b where b.LGD_DistrictCode=? order by b.Block_Name_En ASC ";
             whereData = [distt_lgd_code];
         }

@@ -39,12 +39,12 @@ var upload = multer({
     fileFilter: function (req, file, cb){
       // Set the filetypes, it is optional
         var filetypes = /pdf/;
-        if(file.fieldname=="video_file"){
-            filetypes = /mov|mp4|avi|wmv/;
-        }
-        else if(file.fieldname=="audio_file"){
-            filetypes = /mp3|m4a|aac/;
-        }
+        // if(file.fieldname=="video_file"){
+        //     filetypes = /mov|mp4|avi|wmv/;
+        // }
+        // else if(file.fieldname=="audio_file"){
+        //     filetypes = /mp3|m4a|aac/;
+        // }
         var mimetype = filetypes.test(file.mimetype);
         var extname = filetypes.test(path.extname(
         file.originalname).toLowerCase());
@@ -97,6 +97,7 @@ router.post("/add_acb_complaint",cpUpload, [
             res.send({ message: "पीडीएफ 5MB, विडियो 25MB और ऑडियो फाइल 10MB तक का ही होना चाहिए", response_status: 400 });
         }
         else{
+            console.log(req.body);
             operations['insert_acb_complaint'](req, res, file);
         }
     }
