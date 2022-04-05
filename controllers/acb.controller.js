@@ -31,23 +31,31 @@ acdOperations['insert_acb_complaint'] = async (req, res, file) => {
     
     let {
         applicant_name, applicant_mobile, applicant_email, department_id, district_id, nikay, 
-        block_nagar_id, date_of_event, time_of_event, place_of_event, accused_designation, accused_department, latitude, longitute, 
-        created_by
+        block, date_of_event, time_of_event, place_of_event, accused_designation, latitude, longitute, 
+        created_by, nnn_type,nagar_nigam, ward, grampanchayat, village, officer_name
     } = req.body;
-    let created_ip = req.ip;    
+
+    let created_ip = req.ip; 
+
+    let block_nagar_id = block!=""?block:nagar_nigam;
+    let gp_ward_id = grampanchayat!=""?grampanchayat:ward;
+    let gram_id = village!=""?village:0;
+
+    let accused_department = department_id;
+
     try {
         sql = `SELECT count(1)+1 AS autoId FROM tbl_complaint_acb`;
         let returnData_autoId = await sqlFunction(sql);
-        let generatedComplaintId = "C" + department_id + returnData_autoId[0].autoId.toString().padStart("8", "0");
+        let generatedComplaintId = "C" + accused_department + returnData_autoId[0].autoId.toString().padStart("8", "0");
         
         let comp_id = generatedComplaintId
 
-        sql = `INSERT INTO tbl_complaint_acb(comp_id, applicant_name, applicant_mobile, applicant_email,department_id, district_id, nikay, 
+        sql = `INSERT INTO tbl_complaint_acb(comp_id, applicant_name, applicant_mobile, applicant_email, district_id, nikay, 
             block_nagar_id, date_of_event, time_of_event, place_of_event, accused_designation, accused_department, latitude, longitute, 
-            created_by, created_ip) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-        returnData = await sqlFunction(sql,[comp_id, applicant_name, applicant_mobile, applicant_email, department_id, district_id, nikay, 
+            created_by, created_ip, nnn_type,gp_ward_id,gram_id, accused_officer_name,app_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+        returnData = await sqlFunction(sql,[comp_id, applicant_name, applicant_mobile, applicant_email, district_id, nikay, 
             block_nagar_id, date_of_event, time_of_event, place_of_event, accused_designation, accused_department, latitude, longitute, 
-            created_by, created_ip]);
+            created_by, created_ip, nnn_type,gp_ward_id,gram_id, officer_name,'P']);
         if (returnData.affectedRows != undefined && returnData.affectedRows > 0){
 
             sql = `INSERT INTO tbl_file_upload_acb(original_file_name, file_type, uploaded_file_name, file_url,file_size,fk_complaint_id,ip_address) 

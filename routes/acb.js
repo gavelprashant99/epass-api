@@ -72,24 +72,33 @@ router.post("/add_acb_complaint",cpUpload, [
 ], async (req, res) => {
     const file = req.files;
     let flag = false;
-    if(file.pdf_file[0].size> 5*1024*1024){
-        flag = true;
-        fs.unlinkSync("./"+file.pdf_file[0].path);
+    if(file.pdf_file==undefined){
+        res.send({ message: "कृपया पीडीएफ फाइल अपलोड करें", response_status: 400 });
     }
-    if(file.video_file!= undefined && file.pdf_file[0].size> 25*1024*1024){
-        flag = true;
-        fs.unlinkSync("./"+file.video_file[0].path);
-    }
-    if(file.audio_file!= undefined &&  file.pdf_file[0].size> 10*1024*1024){
-        flag = true;   
-        fs.unlinkSync("./"+file.audio_file[0].path);
-    }
-    if(flag)
+    else if(file.video_file==undefined && file.audio_file==undefined)
     {
-        res.send({ message: "पीडीएफ 5MB, विडियो 25MB और ऑडियो फाइल 10MB तक का ही होना चाहिए", response_status: 400 });
+        res.send({ message: "कृपया विडियो या ऑडियो फाइल अपलोड करें", response_status: 400 });
     }
     else{
-        operations['insert_acb_complaint'](req, res, file);
+        if(file.pdf_file[0].size> 5*1024*1024){
+            flag = true;
+            fs.unlinkSync("./"+file.pdf_file[0].path);
+        }
+        if(file.video_file!= undefined && file.video_file[0].size> 25*1024*1024){
+            flag = true;
+            fs.unlinkSync("./"+file.video_file[0].path);
+        }
+        if(file.audio_file!= undefined && file.audio_file[0].size> 10*1024*1024){
+            flag = true;   
+            fs.unlinkSync("./"+file.audio_file[0].path);
+        }
+        if(flag)
+        {
+            res.send({ message: "पीडीएफ 5MB, विडियो 25MB और ऑडियो फाइल 10MB तक का ही होना चाहिए", response_status: 400 });
+        }
+        else{
+            operations['insert_acb_complaint'](req, res, file);
+        }
     }
 });
 
