@@ -57,7 +57,7 @@ acdOperations['insert_acb_complaint'] = async (req, res, file) => {
         returnData = await sqlFunction(sql,[comp_id, applicant_data.applicant_name, applicant_data.applicant_mobile, applicant_data.applicant_email,
             applicant_data.district_id, applicant_data.nikay, block_nagar_id, applicant_data.date_of_event, applicant_data.time_of_event,
             applicant_data.place_of_event, applicant_data.accused_designation,
-            applicant_data.accused_department, applicant_data.latitude, applicant_data.longitute, 
+            accused_department, applicant_data.latitude, applicant_data.longitute, 
             applicant_data.created_by, created_ip, applicant_data.nnn_type, gp_ward_id, gram_id, applicant_data.officer_name,'P']);
         if (returnData.affectedRows != undefined && returnData.affectedRows > 0){
 
