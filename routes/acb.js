@@ -37,14 +37,16 @@ var upload = multer({
     storage: storage,
     // limits: { fileSize: maxSize },
     fileFilter: function (req, file, cb){
-      // Set the filetypes, it is optional
+        // Set the filetypes, it is optional
+        // console.log("----------");
+        // console.log(file);
         var filetypes = /pdf/;
-        // if(file.fieldname=="video_file"){
-        //     filetypes = /mov|mp4|avi|wmv/;
-        // }
-        // else if(file.fieldname=="audio_file"){
-        //     filetypes = /mp3|m4a|aac/;
-        // }
+        if(file.fieldname=="video_file"){
+            filetypes = /mov|mp4|avi|wmv/;
+        }
+        else if(file.fieldname=="audio_file"){
+            filetypes = /m4a|aac|mpeg|mp3/;
+        }
         var mimetype = filetypes.test(file.mimetype);
         var extname = filetypes.test(path.extname(
         file.originalname).toLowerCase());
@@ -80,6 +82,7 @@ router.post("/add_acb_complaint",cpUpload, [
         res.send({ message: "कृपया विडियो या ऑडियो फाइल अपलोड करें", response_status: 400 });
     }
     else{
+        let msg = "" 
         if(file.pdf_file[0].size> 5*1024*1024){
             flag = true;
             fs.unlinkSync("./"+file.pdf_file[0].path);
@@ -97,8 +100,8 @@ router.post("/add_acb_complaint",cpUpload, [
             res.send({ message: "पीडीएफ 5MB, विडियो 25MB और ऑडियो फाइल 10MB तक का ही होना चाहिए", response_status: 400 });
         }
         else{
-            console.log(req.body);
             operations['insert_acb_complaint'](req, res, file);
+            // res.send({ message: "Testing"});
         }
     }
 });
