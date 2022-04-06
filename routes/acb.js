@@ -67,11 +67,7 @@ var upload = multer({
  var cpUpload = upload.fields([{ name: 'pdf_file', maxCount: 1 }, { name: 'video_file', 
  maxCount: 1}, { name:'audio_file', maxCount: 1}]);
 
-router.post("/add_acb_complaint",cpUpload, [
-    check("district_id", "Please Select A District")
-        .not()
-        .isEmpty(),
-], async (req, res) => {
+router.post("/add_acb_complaint",cpUpload, async (req, res) => {
     const file = req.files;
     let flag = false;
     if(file.pdf_file==undefined){
