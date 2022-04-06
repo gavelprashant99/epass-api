@@ -78,11 +78,8 @@ acdOperations['insert_acb_complaint'] = async (req, res, file) => {
                 await sqlFunction(sql, [file.audio_file[0].originalname, file.audio_file[0].mimetype, file.audio_file[0].filename, file.audio_file[0].path, 
                     file.audio_file[0].size,comp_id,created_ip])
             }
-
-            res.send({
-                message: "Complain added successfully",
-                response_status: 200,
-            });
+            // let sms = util.sms(mobile_no, 3, "1307164805510256873", "आपकी शिकायत दर्ज की जा चुकी  है, आपका शिकायत क्रमांक " + generatedComplaintId + " हैं | जनशिकायत छत्तीसगढ़, चिप्स");
+            res.send({ message: "आपकी शिकायत सफलतापूर्वक दर्ज कर ली गई है।  आपकी शिकायत आईडी : " + generatedComplaintId, complaint_id: generatedComplaintId, response_status: 200 });
         }
         else res.send({ message: "Error", response_status: 400 });
     } catch (e) {
