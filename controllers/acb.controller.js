@@ -35,7 +35,8 @@ acdOperations['insert_acb_complaint'] = async (req, res, file) => {
     //     created_by, nnn_type,nagar_nigam, ward, grampanchayat, village, officer_name
     // } = req.body;
     let applicant_data = JSON.parse(req.body.data);
-
+    let latitude= req.body.latitude;
+    let longitute =req.body.longitute;
     let created_ip = req.ip; 
 
     let block_nagar_id = applicant_data.block!=""?applicant_data.block:applicant_data.nagar_nigam;
@@ -57,7 +58,7 @@ acdOperations['insert_acb_complaint'] = async (req, res, file) => {
         returnData = await sqlFunction(sql,[comp_id, applicant_data.applicant_name, applicant_data.applicant_mobile, applicant_data.applicant_email,
             applicant_data.district_id, applicant_data.nikay, block_nagar_id, applicant_data.date_of_event, applicant_data.time_of_event,
             applicant_data.place_of_event, applicant_data.accused_designation,
-            accused_department, applicant_data.latitude, applicant_data.longitute, 
+            accused_department, latitude, longitute, 
             applicant_data.created_by, created_ip, applicant_data.nnn_type, gp_ward_id, gram_id, applicant_data.officer_name,'P']);
         if (returnData.affectedRows != undefined && returnData.affectedRows > 0){
 
