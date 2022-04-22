@@ -28,12 +28,6 @@ acdOperations['insert_acb_complaint'] = async (req, res, file) => {
             errors: errors.array(), "status": 400
         });
     }
-    
-    // let {
-    //     applicant_name, applicant_mobile, applicant_email, department_id, district_id, nikay, 
-    //     block, date_of_event, time_of_event, place_of_event, accused_designation, latitude, longitute, 
-    //     created_by, nnn_type,nagar_nigam, ward, grampanchayat, village, officer_name
-    // } = req.body;
     let applicant_data = JSON.parse(req.body.data);
     let latitude= req.body.latitude;
     let longitute =req.body.longitute;
@@ -97,5 +91,45 @@ acdOperations['insert_acb_complaint'] = async (req, res, file) => {
     }
 };
 
+acdOperations['fetch_acb_complaint_data'] = async (req, res) => {
+    let comp_id = req.params.comp_id == undefined ? "" : req.params.comp_id;
+    let condition = "";
+    if(comp_id!=""){
+        condition =" WHERE c.comp_id =?";
+    }
+    try{
+        sql ="SELECT c.comp_id, c.applicant_name, c.applicant_mobile, c.applicant_email, c.nikay, c.date_of_event, "
+            +"c.time_of_event, c.place_of_event, c.accused_officer_name, c.app_status, d.dept_name_hi, d.dept_name_eng, "
+            +"md.District_Name district_name_hin, md.DBStart_Name_En district_name_eng, n.block_nagar_name, n.block_nagar_name_eng "
+            +"FROM tbl_complaint_acb c "
+            +"INNER JOIN master_departments d ON c.accused_department = d.dept_id "
+            +"INNER JOIN master_districts md ON c.district_id =  md.LGD_CODE "
+            +"INNER JOIN temp_nagar_block n ON c.block_nagar_id = n.block_nagar_code "+condition;
+        returnData = await sqlFunction(sql, [comp_id]);
+        res.send({ "data":returnData,"response_status": 200});
 
+    }catch (e) {
+        console.log(e);
+        res.send({message: "Error in fetching Data", response_status: 400 });
+    }
+};
+
+acdOperations['fetch_acb_complaint_files'] = async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(200).json({
+            errors: errors.array(), "status": 400
+        });
+    }
+    try{
+        let comp_id = req.params.comp_id == undefined ? "" : req.params.comp_id;
+        sql="SELECT * FROM tbl_file_upload_acb f WHERE f.fk_complaint_id =?";
+        returnData = await sqlFunction(sql, [comp_id]);
+        res.send({ "data":returnData,"response_status": 200});
+
+    }catch (e) {
+        console.log(e);
+
+    }
+};
 module.exports = acdOperations;

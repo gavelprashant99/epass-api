@@ -7,7 +7,7 @@ const master =require("./routes/master");
 const user =require("./routes/user");
 const officer =require("./routes/officer");
 const acb = require("./routes/acb");
-
+const aadhar = require("./routes/aadhar");
 const whiteList = require("./controllers/util");
 
 const app = express();
@@ -47,6 +47,7 @@ app.use("/master", master);
 app.use("/user", user);
 app.use("/officer", officer);
 app.use("/acb", acb);
+app.use("/aadhar", aadhar);
 
 app.listen(PORT, (req, res) => {
   console.log(`Server Started at PORT ${PORT}`);
