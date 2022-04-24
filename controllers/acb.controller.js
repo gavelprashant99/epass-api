@@ -114,6 +114,23 @@ acdOperations['fetch_acb_complaint_data'] = async (req, res) => {
     }
 };
 
+acdOperations['getDashboardCounts'] = async (req, res) => {
+    try{
+        sql = `SELECT tl.status, COUNT(1) acount  FROM tbl_complaint_ledger_acb tl 
+        WHERE tl.is_active = 1
+        GROUP BY tl.status
+        UNION ALL
+        SELECT 'total',COUNT(1) acount FROM tbl_complaint_ledger_acb tl
+        WHERE tl.is_active = 1 `
+        returnData = await sqlFunction(sql, []);
+        res.send({ "data":returnData,"response_status": 200});
+
+    }catch (e) {
+        console.log(e);
+        res.send({message: "Error in fetching Data", response_status: 400 });
+    }
+};
+
 acdOperations['fetch_acb_complaint_files'] = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
