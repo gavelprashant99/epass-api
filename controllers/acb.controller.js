@@ -62,22 +62,22 @@ acdOperations['insert_acb_complaint'] = async (req, res, file) => {
                 returnData = await sqlFunction(sql,[comp_id, 'C','ACB0300', applicant_data.district_id,
                 block_nagar_id, 'P','ACB - Complaint Initiated', applicant_data.created_by, created_ip]);
                 if (returnData.affectedRows != undefined && returnData.affectedRows > 0){
-                    sql = `INSERT INTO tbl_file_upload_acb(original_file_name, file_type, uploaded_file_name, file_url,file_size,fk_complaint_id,ip_address) 
-                    VALUES (?,?,?,?,?,?,?)`;
+                    sql = `INSERT INTO tbl_file_upload_acb(original_file_name, file_type, uploaded_file_name, file_url,file_size,fk_complaint_id,ip_address, file_category) 
+                    VALUES (?,?,?,?,?,?,?,?)`;
                 if(file.pdf_file!==undefined)
                 {
                     await sqlFunction(sql, [file.pdf_file[0].originalname, file.pdf_file[0].mimetype, file.pdf_file[0].filename, file.pdf_file[0].path, 
-                        file.pdf_file[0].size,comp_id,created_ip])
+                        file.pdf_file[0].size,comp_id,created_ip,"D"])
                 }
                 if(file.video_file!==undefined)
                 {
                     await sqlFunction(sql, [file.video_file[0].originalname, file.video_file[0].mimetype, file.video_file[0].filename, file.video_file[0].path,
-                        file.video_file[0].size,comp_id,created_ip])
+                        file.video_file[0].size,comp_id,created_ip,"V"])
                 }
                 if(file.audio_file!==undefined)
                 {
                     await sqlFunction(sql, [file.audio_file[0].originalname, file.audio_file[0].mimetype, file.audio_file[0].filename, file.audio_file[0].path, 
-                        file.audio_file[0].size,comp_id,created_ip])
+                        file.audio_file[0].size,comp_id,created_ip,"A"])
                 }
                 // let sms = util.sms(mobile_no, 3, "1307164805510256873", "आपकी शिकायत दर्ज की जा चुकी  है, आपका शिकायत क्रमांक " + generatedComplaintId + " हैं | जनशिकायत छत्तीसगढ़, चिप्स");
                 res.send({ message: "आपकी शिकायत सफलतापूर्वक दर्ज कर ली गई है।  आपकी शिकायत आईडी : " + generatedComplaintId, complaint_id: generatedComplaintId, response_status: 200 });

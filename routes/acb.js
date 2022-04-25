@@ -134,6 +134,11 @@ router.get("/getDashbaordCount",async (req, res) => {
     operations['fetch_acb_complaint_files'](req, res);
 });
 
+/**
+ * @method - GET
+ * @description -GET fetch_file? 
+ * @url - /acb/fetch_file
+ */
 router.get("/fetch_file", async (req, res) => {
     res.download(req.query.file_url);
 });
