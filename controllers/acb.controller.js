@@ -199,7 +199,7 @@ acbOperations['updateResolution'] = async (req, res, file) => {
                 if (returnData.affectedRows == undefined || returnData.affectedRows <= 0) {
                     console.log("status not updated in complaint table");
                 }
-                if(file.res_file!==undefined){
+                if(file!==undefined){
                   for(let i = 0; i < req.files.res_file.length; i++) {
                     sql = `INSERT INTO tbl_file_upload_acb(original_file_name, file_type, uploaded_file_name, file_url,file_size,fk_complaint_id,is_resolution_file,ip_address) 
                     VALUES (?,?,?,?,?,?,?,?)`;
@@ -215,6 +215,136 @@ acbOperations['updateResolution'] = async (req, res, file) => {
         console.log(e);
         res.send({message: "Techincal Error"});
     }
+};
+
+
+acbOperations['acbComplaintForward'] = async (req,res) =>{
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(200).json({
+            errors: errors.array(), "status": 400
+        });
+    }
+    let comp_id = req.body.comp_id;
+    sql = `SELECT tca.id id ,tca.comp_id compId,tca.applicant_name applicantName,
+    tca.applicant_mobile applicantMobile , tca.applicant_email email,
+    tca.department_id deptId, tca.cmpt_code cmptCode, tca.cmpt_sub_code
+    cmptSubCode, tca.district_id distId, tca.nikay nikay,
+    tca.nnn_type nnntype , tca.block_nagar_id blockNagarId, tca.gp_ward_id
+    gpWardId,tca.gram_id gramId, tca.date_of_event dateOfEvent,
+    tca.time_of_event timeOfEvent , tca.place_of_event placeOfEvent,
+    tca.accused_officer_name accusedOfficerName, tca.accused_designation
+    accusedDesignation,tca.accused_department accusedDept , tca.app_status
+    appStatus
+    FROM tbl_complaint_acb tca 
+    WHERE tca.comp_id = ? AND tca.app_status NOT IN (?)`;
+    returnData = await sqlFunction(sql, [comp_id,'C']);
+    console.log("returnData",returnData);
+    if(returnData.length <= 0) {
+    return res.send({message: "Complaint Id is Invalid Or its closed",response_status: 404});
+    }
+    let department_id = req.body.dept_id;
+    let district_id = returnData[0].distId;
+    let applicantName = returnData[0].applicantName;
+    let address = returnData[0].nikay;
+    let mobile = returnData[0].applicantMobile;
+    let subject = "";
+    sql = `SELECT md.dept_id deptId,md.dept_name_hi deptNameHin,
+    md.dept_name_eng deptNameEng,md.dept_code deptCode,
+    md.model model , md.hide hide FROM master_departments md
+    WHERE md.dept_id = ?`;
+    returnData = await sqlFunction(sql, [department_id]);
+    let deptNameEng = '';
+    let deptNameHin = '';
+    if(returnData.length <= 0) {
+        return res.send({message: "Department Id Is Invalid !",response_status: 404});
+    }else{
+        deptNameEng = returnData[0].deptNameEng;
+        deptNameHin = returnData[0].deptNameHin;
+    }
+    sql = `SELECT tc.from_officer, tc.to_officer, tc.district_id, tc.block_nagar_id, tc.status, tc.remark FROM tbl_complaint_ledger_acb tc
+    WHERE tc.comp_id = ? AND tc.is_active = ? AND tc.status != ?`;
+    compData = await sqlFunction(sql, [comp_id,1,'C']);
+     if(compData.length==0){
+      return res.send({ message: "complaint id not active","response_status": 400});
+    }
+    let to_officer  = compData[0].to_officer;
+    let applicant_district_id = compData[0].district_id;
+    let block_nagar_id = compData[0].block_nagar_id;
+    try{
+        let pgn_value = "None";
+        sql = "SELECT pgn_id, DBStart_Name_En FROM `master_districts` WHERE LGD_CODE =?";
+        returnData = await sqlFunction(sql, [district_id]);
+        console.log("returnDataPGN",returnData);
+        let pgn_district_id = returnData[0].pgn_id;
+        let pgn_district_name = returnData[0].DBStart_Name_En;
+        let app_category_id = 6 // for shikayat category
+        let app_category_name = 'शिकायत' 
+        let isfileuploaded ="N";
+        let ip_address = req.socket.remoteAddress;
+        let sqlGetFiles = `SELECT tfa.file_id fileId ,tfa.fk_complaint_id compId,
+        tfa.original_file_name originalFileName , tfa.uploaded_file_name
+        uploadedFileName , tfa.file_type fileType, tfa.file_url fileUrl,
+        tfa.file_size fileSize , tfa.created_datetime uploadedDateTime,
+        tfa.ip_address ipAddress
+        FROM tbl_file_upload_acb tfa  
+        WHERE tfa.fk_complaint_id = ? AND 
+        is_resolution_file != ? AND tfa.file_category = ?`
+        returnData = await sqlFunction(sqlGetFiles, [comp_id,1,'D']) // only post pdf file data yet.
+        if(returnData.length > 0){
+            isfileuploaded = "Y";
+            let fileUrl = returnData[0].fileUrl;
+            fileData = fs.readFileSync("./"+fileUrl, 'base64');
+        }else{
+            console.log("file not found!");
+        }
+       // console.log("fileData",fileData);
+        var request = require('request');
+        var options = {
+            'method': 'POST',
+            'url': 'https://janshikayat.cg.nic.in/janshikayatApiStaging/api/Master/SaveComplaintDetails',
+            'headers': {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({"name":applicantName,
+            "address": address,
+            "subject": subject,
+            "applicantdistrictid": pgn_district_id.toString(),
+            "appcategoryid": app_category_id.toString(),
+            "applicantdistrictname": pgn_district_name,
+            "mobileno": mobile.toString(),
+            "isfileuploaded": isfileuploaded, "filedata": fileData})
+
+        };
+        request(options, async function (error, response) {
+            if (error) throw new Error(error);
+            else if(JSON.parse(response.body)['status']==true){
+                 console.log("pgn response post ",response.body);
+                pgn_value = JSON.parse(response.body).value;
+                sql="UPDATE tbl_complaint_acb SET is_posted = 1 , pgn_value = ? WHERE comp_id=?";
+                returnData = await sqlFunction(sql, [comp_id,pgn_value]);
+                if (returnData.affectedRows == undefined && returnData.affectedRows <= 0) {
+                    console.log("isposted not updated!");
+                }
+            }
+        });
+        let froward_remark = "complaint forwarded to concern detpartment"
+        sql = `INSERT INTO tbl_complaint_ledger_acb(comp_id, from_officer,to_officer,district_id, block_nagar_id,remark,is_active,status,created_ip) 
+        VALUES (?,?,?,?,?,?,?,?,?)`;
+        returnData = await sqlFunction(sql, [comp_id,to_officer,department_id,applicant_district_id,block_nagar_id,froward_remark,1,'F',ip_address]);
+        if (returnData.affectedRows != undefined && returnData.affectedRows > 0) {
+            let sqlUpdateStatus = `UPDATE tbl_complaint_acb SET app_status = 'F' WHERE comp_id = ?`
+            returnData = await sqlFunction(sqlUpdateStatus,['F',comp_id]);
+            if(returnData.affectedRows == undefined && returnData.affectedRows<=0){
+                return res.send({message: "Error in updating status ! please try again later"});
+            }
+        }
+        res.send({ message: "शिकायत क्रमांक : " +comp_id+ " संबंधित विभाग : "+deptNameHin+ " को सफलतापूर्वक भेजी गयी है", response_status: 200 });
+    }catch (e) {
+        console.log(e);
+        res.send({message: "Technical Error..."});
+    }
+
 };
 
 module.exports = acbOperations;

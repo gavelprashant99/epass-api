@@ -161,7 +161,7 @@ router.post("/updateResolution/",ResUpload,[
     const file = req.files;
    // console.log(file);
     let flag = false;
-    if (file.res_file != undefined) {
+    if (file != undefined) {
         let msg = ""
         if (file.res_file[0].size > 200 * 1024 ) {
             flag = true;
@@ -175,6 +175,19 @@ router.post("/updateResolution/",ResUpload,[
         let file = [];
     }
     operations['updateResolution'](req, res,file);
+   
+});
+
+router.post("/acbComplaintForward/",[
+    check("comp_id", "Please enter complaint id")
+    .not()
+    .isEmpty(),
+    check("dept_id", "Please enter department id")
+    .not()
+    .isEmpty()
+],async (req, res) => {
+    //console.log("=========",req.body);
+    operations['acbComplaintForward'](req, res);
    
 });
 module.exports = router;
