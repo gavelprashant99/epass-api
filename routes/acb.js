@@ -114,7 +114,7 @@ router.post("/add_acb_complaint", cpUpload, async (req, res) => {
  * @description -GET ACB Complaint 
  * @url - /acb/get_acb_complaint
  */
-router.get("/get_acb_complaint/:comp_id?",async (req, res) => {
+router.get("/get_acb_complaint/:status?",async (req, res) => {
     operations['fetch_acb_complaint_data'](req, res);
 });
 

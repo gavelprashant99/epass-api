@@ -93,20 +93,21 @@ acdOperations['insert_acb_complaint'] = async (req, res, file) => {
 };
 
 acdOperations['fetch_acb_complaint_data'] = async (req, res) => {
-    let comp_id = req.params.comp_id == undefined ? "" : req.params.comp_id;
+    let status = req.params.status == undefined ? "" : req.params.status;
     let condition = "";
-    if(comp_id!=""){
-        condition =" WHERE c.comp_id =?";
+    if(status!=""){
+        condition =" WHERE c.app_status =?";
     }
     try{
-        sql ="SELECT c.comp_id, c.applicant_name, c.applicant_mobile, c.applicant_email, c.nikay, c.date_of_event, "
-            +"c.time_of_event, c.place_of_event, c.accused_officer_name, c.app_status, d.dept_name_hi, d.dept_name_eng, "
-            +"md.District_Name district_name_hin, md.DBStart_Name_En district_name_eng, n.block_nagar_name, n.block_nagar_name_eng "
-            +"FROM tbl_complaint_acb c "
-            +"INNER JOIN master_departments d ON c.accused_department = d.dept_id "
-            +"INNER JOIN master_districts md ON c.district_id =  md.LGD_CODE "
-            +"INNER JOIN temp_nagar_block n ON c.block_nagar_id = n.block_nagar_code "+condition;
-        returnData = await sqlFunction(sql, [comp_id]);
+        sql =`SELECT c.comp_id, c.applicant_name , c.applicant_mobile , c.applicant_email, c.created_on complaint_date,
+            c.nikay, c.date_of_event , c.time_of_event, c.place_of_event, c.accused_officer_name, 
+            c.app_status, d.dept_name_hi, d.dept_name_eng, md.District_Name distNameHin, md.DBStart_Name_En district_name_eng, 
+            n.block_nagar_name, n.block_nagar_name_eng 
+            FROM tbl_complaint_acb c 
+            INNER JOIN master_departments d ON c.accused_department = d.dept_id 
+            INNER JOIN master_districts md ON c.district_id =  md.LGD_CODE 
+            INNER JOIN temp_nagar_block n ON c.block_nagar_id = n.block_nagar_code `+condition;
+        returnData = await sqlFunction(sql, [status]);
         res.send({ "data":returnData,"response_status": 200});
 
     }catch (e) {
