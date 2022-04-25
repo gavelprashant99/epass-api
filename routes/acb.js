@@ -159,9 +159,11 @@ router.post("/updateResolution/",ResUpload,[
     check("status", "Please enter a status").not().isEmpty()
 ],async (req, res) => {
     const file = req.files;
-   // console.log(file);
+    console.log("here is something", file);
     let flag = false;
     if (file != undefined) {
+
+        console.log("Yes I am here ");
         let msg = ""
         if (file.res_file[0].size > 200 * 1024 ) {
             flag = true;
