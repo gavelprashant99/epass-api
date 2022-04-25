@@ -73,10 +73,17 @@ router.post("/add_acb_complaint", cpUpload, async (req, res) => {
     const file = req.files;
     let flag = false;
     if (file.pdf_file == undefined) {
+        if(file.video_file[0].path!="")
+            fs.unlinkSync("./" + file.video_file[0].path);
+        if(file.audio_file[0].path!="")
+            fs.unlinkSync("./" + file.audio_file[0].path);
         res.send({ message: "कृपया पीडीएफ फाइल अपलोड करें", response_status: 400 });
     }
     else if (file.video_file == undefined && file.audio_file == undefined) {
+        if(file.video_file[0].path!="")
+            fs.unlinkSync("./" + file.pdf_file[0].path);
         res.send({ message: "कृपया विडियो या ऑडियो फाइल अपलोड करें", response_status: 400 });
+
     }
     else {
         let msg = ""
@@ -125,5 +132,9 @@ router.get("/getDashbaordCount",async (req, res) => {
     .isEmpty(),
 ],async (req, res) => {
     operations['fetch_acb_complaint_files'](req, res);
+});
+
+router.get("/fetch_file", async (req, res) => {
+    res.download(req.query.file_url);
 });
 module.exports = router;
