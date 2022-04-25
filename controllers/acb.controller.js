@@ -142,7 +142,7 @@ acdOperations['fetch_acb_complaint_files'] = async (req, res) => {
     }
     try{
         let comp_id = req.params.comp_id == undefined ? "" : req.params.comp_id;
-        sql="SELECT f.original_file_name, f.uploaded_file_name, f.file_url FROM tbl_file_upload_acb f WHERE f.fk_complaint_id =?";
+        sql="SELECT f.original_file_name, f.uploaded_file_name, f.file_url, f.file_category FROM tbl_file_upload_acb f WHERE f.fk_complaint_id =?";
         returnData = await sqlFunction(sql, [comp_id]);
         res.send({ "data":returnData,"response_status": 200});
 
