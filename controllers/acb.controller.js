@@ -2,7 +2,7 @@ const connection = require("../config/mysqldb");
 const express = require("express");
 const router = express.Router();
 const {check, validationResult} = require("express-validator");
-const acdOperations = [];
+const acbOperations = [];
 const fs = require("fs");
 
 function sqlFunction($sql, $params = []) {
@@ -22,7 +22,7 @@ let sql;
 
 // Insert ACB
 
-acdOperations['insert_acb_complaint'] = async (req, res, file) => {
+acbOperations['insert_acb_complaint'] = async (req, res, file) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(200).json({
@@ -92,7 +92,7 @@ acdOperations['insert_acb_complaint'] = async (req, res, file) => {
     }
 };
 
-acdOperations['fetch_acb_complaint_data'] = async (req, res) => {
+acbOperations['fetch_acb_complaint_data'] = async (req, res) => {
     let status = req.params.status == undefined ? "" : req.params.status;
     let condition = "";
     if(status!=""){
@@ -116,7 +116,7 @@ acdOperations['fetch_acb_complaint_data'] = async (req, res) => {
     }
 };
 
-acdOperations['getDashboardCounts'] = async (req, res) => {
+acbOperations['getDashboardCounts'] = async (req, res) => {
     try{
         sql = `SELECT tl.status, COUNT(1) acount  FROM tbl_complaint_ledger_acb tl 
         WHERE tl.is_active = 1
@@ -133,7 +133,7 @@ acdOperations['getDashboardCounts'] = async (req, res) => {
     }
 };
 
-acdOperations['fetch_acb_complaint_files'] = async (req, res) => {
+acbOperations['fetch_acb_complaint_files'] = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(200).json({
@@ -151,5 +151,70 @@ acdOperations['fetch_acb_complaint_files'] = async (req, res) => {
 
     }
 };
+acbOperations['updateResolution'] = async (req, res, file) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(200).json({
+            errors: errors.array(), "status": 400
+        });
+    }
+   
+    let comp_id= req.body.comp_id;
+    let resolution_remark =req.body.resolution_remark;
+    let status =req.body.status;
+    let resolution_datetime = new Date();
+    let resolved_by = req.body.resolved_by != undefined ? req.body.resolved_by : "API";
+    let ip_address = req.socket.remoteAddress;
 
-module.exports = acdOperations;
+    try {
+        sql = `SELECT tc.comp_id,md.dept_name_hi,tc.department_id,tc.applicant_mobile
+        FROM tbl_complaint_acb tc
+        LEFT JOIN master_departments md ON md.dept_id = tc.department_id
+        WHERE tc.comp_id = ? and tc.app_status NOT IN (?)  
+		ORDER BY id DESC LIMIT 1`;
+        returnData = await sqlFunction(sql,[comp_id,'C']);
+        if(returnData.length==0){
+            res.send({ message: "Complaint id dose not exist OR Its Already Closed","response_status": 404});
+        }else{
+            sql = `SELECT tc.from_officer, tc.to_officer, tc.district_id, tc.block_nagar_id, tc.status, tc.remark FROM tbl_complaint_ledger_acb tc
+            WHERE tc.comp_id = ? AND tc.is_active = ? AND tc.status != ?`;
+            compData = await sqlFunction(sql, [comp_id,1,'C']);
+             if(compData.length==0){
+              return res.send({ message: "complaint id not active","response_status": 400});
+            }
+
+            sql = "UPDATE tbl_complaint_ledger_acb lg SET lg.is_active = 0 WHERE lg.comp_id = ? AND lg.status != 'C'";
+            returnData = await sqlFunction(sql, [comp_id]);
+            if (returnData.affectedRows == undefined || returnData.affectedRows <= 0) {
+                console.log("status not updated in ledger");
+            }
+            sql = `INSERT INTO tbl_complaint_ledger_acb(comp_id, from_officer,to_officer,district_id, block_nagar_id,remark,is_active,status,created_ip) 
+            VALUES (?,?,?,?,?,?,?,?,?)`;
+            returnData = await sqlFunction(sql, [comp_id, resolved_by,"",compData[0].district_id, compData[0].block_nagar_id,resolution_remark,1,status,ip_address]);
+            if (returnData.affectedRows != undefined && returnData.affectedRows > 0) {
+                sql = `UPDATE tbl_complaint_acb ca SET ca.app_status = ? ,ca.resolution_remark = ?
+                ,ca.resolution_datetime = ?  ,ca.resolved_by = ? 
+                WHERE ca.comp_id = ? AND ca.app_status != ?`;
+                returnData = await sqlFunction(sql, [status,resolution_remark,resolution_datetime,resolved_by,comp_id,'C']);
+                if (returnData.affectedRows == undefined || returnData.affectedRows <= 0) {
+                    console.log("status not updated in complaint table");
+                }
+                if(file.res_file!==undefined){
+                  for(let i = 0; i < req.files.res_file.length; i++) {
+                    sql = `INSERT INTO tbl_file_upload_acb(original_file_name, file_type, uploaded_file_name, file_url,file_size,fk_complaint_id,is_resolution_file,ip_address) 
+                    VALUES (?,?,?,?,?,?,?,?)`;
+                    returnData = await sqlFunction(sql, [file.res_file[i].originalname, file.res_file[i].mimetype, file.res_file[i].filename, file.res_file[i].path, file.res_file[i].size,comp_id,1,ip_address]); // 1 - resolution file
+                  }
+                }
+              }else{
+                res.send({ message: "Not Inserted In Ledger", response_status: 400 });
+              }
+              res.send({ message: "Complaint Resolution Successfully Updated", response_status: 200 });
+        }  
+    } catch (e) {
+        console.log(e);
+        res.send({message: "Techincal Error"});
+    }
+};
+
+module.exports = acbOperations;

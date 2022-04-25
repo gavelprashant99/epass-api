@@ -22,6 +22,8 @@ var storage = multer.diskStorage({
         }
         else if (file.fieldname == "audio_file") {
             file_path = uploadPath + "/" + "audio_files";
+        }else if(file.fieldname == "res_file"){
+            file_path = uploadPath + "/" + "resolution_files";
         }
         if (!fs.existsSync(file_path)) {
             fs.mkdirSync(file_path);
@@ -141,5 +143,38 @@ router.get("/getDashbaordCount",async (req, res) => {
  */
 router.get("/fetch_file", async (req, res) => {
     res.download(req.query.file_url);
+});
+/**
+ * @method - POST
+ * @description -POST ACB Complaint Resolution 
+ * @url - /acb/updateResolution
+ */
+ var ResUpload = upload.fields([{ name: 'res_file', maxCount: 1 }]);
+
+router.post("/updateResolution/",ResUpload,[
+    check("comp_id", "Please enter complaint id")
+    .not()
+    .isEmpty(),
+    check("resolution_remark", "Please enter resolution remarks").not().isEmpty(),
+    check("status", "Please enter a status").not().isEmpty()
+],async (req, res) => {
+    const file = req.files;
+   // console.log(file);
+    let flag = false;
+    if (file.res_file != undefined) {
+        let msg = ""
+        if (file.res_file[0].size > 200 * 1024 ) {
+            flag = true;
+            fs.unlinkSync("./" + file.res_file[0].path);
+        }
+        if (flag) {
+            return res.send({ message: "पीडीएफ 200KB तक का ही होना चाहिए", response_status: 400 });
+        }
+        // res.send({ message: "कृपया पीडीएफ फाइल अपलोड करें", response_status: 400 });
+    }else{
+        let file = [];
+    }
+    operations['updateResolution'](req, res,file);
+   
 });
 module.exports = router;
