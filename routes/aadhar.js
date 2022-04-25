@@ -27,7 +27,7 @@ router.post("/aadharAuth", [
 * @description - Post 
 * @url - /aadhar/aadharAuth
 */
-router.post("/aadherVerifyOTP", [
+router.post("/aadharVerifyOTP", [
     check("aadhar_no", "Please enter a Aadhar no.")
         .not()
         .isEmpty(),
@@ -49,6 +49,6 @@ router.post("/aadherVerifyOTP", [
 */
 router.post("/uid/:operation", async (req, res) => {
     const operations = require("../controllers/aadhar.controller");
-    operations['aadherOperation'](req, res);
+    operations['aadharOperation'](req, res);
 });
 module.exports = router;

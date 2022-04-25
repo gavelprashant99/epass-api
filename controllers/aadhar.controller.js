@@ -64,12 +64,17 @@ aadharOperations["aadherOTPVerify"] = async (req, res) => {
   try{
     let apiResponse = await callPostAPI(url, headers);
       apiResponse = JSON.parse(aesDecryption(apiResponse, decToken));
-      res.json({"is_valid": apiResponse.AuthRes});
+      // res.json({"is_valid": apiResponse.AuthRes});
+      if( apiResponse.AuthRes=='y'){
+        return res.send({ message: "valid user","response_status": 200});
+      }else{
+        return res.send({ message: "invalid user","response_status": 400});
+      }
   }catch (err) {
     res.json({ "Error": err });
   }
 };
-aadharOperations["aadherOperation"] = async (req, res) => {
+aadharOperations["aadharOperation"] = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(200).json({
