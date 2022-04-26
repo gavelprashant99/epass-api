@@ -102,7 +102,7 @@ acbOperations['fetch_acb_complaint_data'] = async (req, res) => {
         sql =`SELECT c.comp_id, c.applicant_name , c.applicant_mobile , c.applicant_email, c.created_on complaint_date,
             c.nikay, c.date_of_event , c.time_of_event, c.place_of_event, c.accused_officer_name, 
             c.app_status, d.dept_name_hi, d.dept_name_eng, md.District_Name distNameHin, md.DBStart_Name_En district_name_eng, 
-            n.block_nagar_name, n.block_nagar_name_eng 
+            n.block_nagar_name, n.block_nagar_name_eng, resolution_remark, resolution_datetime resolution_date  
             FROM tbl_complaint_acb c 
             INNER JOIN master_departments d ON c.accused_department = d.dept_id 
             INNER JOIN master_districts md ON c.district_id =  md.LGD_CODE 
@@ -342,6 +342,29 @@ acbOperations['acbComplaintForward'] = async (req,res) =>{
         let app_category_name = 'शिकायत' 
         let isfileuploaded ="N";
         let ip_address = req.socket.remoteAddress;
+        
+        let sqlUpdateLedgerStatus = `UPDATE tbl_complaint_ledger_acb tc
+                                    SET tc.is_active = 0 
+                                    WHERE tc.comp_id = ? AND tc.status = ? `;
+        let returnDataLedger = await sqlFunction(sqlUpdateLedgerStatus,[comp_id, 'P']);
+        if(returnDataLedger.affectedRows == undefined && returnDataLedger.affectedRows<=0){
+            return res.send({message: "Error in updating status ! please try again later"});
+        }
+     
+    
+        let froward_remark = "complaint forwarded to concern detpartment"
+        sql = `INSERT INTO tbl_complaint_ledger_acb(comp_id, from_officer,to_officer,district_id, block_nagar_id,remark,is_active,status,created_ip) 
+        VALUES (?,?,?,?,?,?,?,?,?)`;
+        returnData = await sqlFunction(sql, [comp_id,to_officer,department_id,applicant_district_id,block_nagar_id,froward_remark,1,'F',ip_address]);
+        if (returnData.affectedRows != undefined && returnData.affectedRows > 0) {
+            let sqlUpdateStatus = `UPDATE tbl_complaint_acb SET app_status = ? WHERE comp_id = ?`
+            returnData = await sqlFunction(sqlUpdateStatus,['F',comp_id]);
+            if(returnData.affectedRows == undefined && returnData.affectedRows<=0){
+                return res.send({message: "Error in updating status ! please try again later"});
+            }
+        }
+    
+
         let sqlGetFiles = `SELECT tfa.file_id fileId ,tfa.fk_complaint_id compId,
         tfa.original_file_name originalFileName , tfa.uploaded_file_name
         uploadedFileName , tfa.file_type fileType, tfa.file_url fileUrl,
@@ -388,20 +411,10 @@ acbOperations['acbComplaintForward'] = async (req,res) =>{
                 }
             }
         });
-        let froward_remark = "complaint forwarded to concern detpartment"
-        sql = `INSERT INTO tbl_complaint_ledger_acb(comp_id, from_officer,to_officer,district_id, block_nagar_id,remark,is_active,status,created_ip) 
-        VALUES (?,?,?,?,?,?,?,?,?)`;
-        returnData = await sqlFunction(sql, [comp_id,to_officer,department_id,applicant_district_id,block_nagar_id,froward_remark,1,'F',ip_address]);
-        if (returnData.affectedRows != undefined && returnData.affectedRows > 0) {
-            let sqlUpdateStatus = `UPDATE tbl_complaint_acb SET app_status = ? WHERE comp_id = ?`
-            returnData = await sqlFunction(sqlUpdateStatus,['F',comp_id]);
-            if(returnData.affectedRows == undefined && returnData.affectedRows<=0){
-                return res.send({message: "Error in updating status ! please try again later"});
-            }
-        }
+        
         res.send({ message: "शिकायत क्रमांक : " +comp_id+ " , संबंधित विभाग ( "+deptNameHin+ " ) को सफलतापूर्वक भेजी गयी है", response_status: 200 });
     }catch (e) {
-        console.log(e);
+        console.log("Here is the error ",e);
         res.send({message: "Technical Error..."});
     }
 
