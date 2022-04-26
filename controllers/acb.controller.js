@@ -229,14 +229,30 @@ acbOperations['acbComplaintForward'] = async (req,res) =>{
     sql = `SELECT tca.id id ,tca.comp_id compId,tca.applicant_name applicantName,
     tca.applicant_mobile applicantMobile , tca.applicant_email email,
     tca.department_id deptId, tca.cmpt_code cmptCode, tca.cmpt_sub_code
-    cmptSubCode, tca.district_id distId, tca.nikay nikay,
-    tca.nnn_type nnntype , tca.block_nagar_id blockNagarId, tca.gp_ward_id
-    gpWardId,tca.gram_id gramId, tca.date_of_event dateOfEvent,
+    cmptSubCode, tca.district_id distId, md.District_Name distNameHin, 
+	tca.nikay nikay,
+    tca.nnn_type nnntype , tca.block_nagar_id blockNagarId, 
+	tnb.block_nagar_name blockNagarName,tca.gp_ward_id gpWardId,
+	mp.Gram_Panchayat_Hi gramPanchayatNameHin,
+	mnw.ward_name_hin wardNameHin,
+    tca.gram_id gramId, mv.LGD_VillageName_Hn villageNameHin,
+	tca.date_of_event dateOfEvent,
     tca.time_of_event timeOfEvent , tca.place_of_event placeOfEvent,
     tca.accused_officer_name accusedOfficerName, tca.accused_designation
     accusedDesignation,tca.accused_department accusedDept , tca.app_status
-    appStatus
+    appStatus,tca.is_posted
     FROM tbl_complaint_acb tca 
+    LEFT JOIN master_districts md ON tca.district_id = md.LGD_CODE
+    LEFT JOIN temp_nagar_block tnb ON tca.block_nagar_id = tnb.block_nagar_code
+    LEFT JOIN master_villages mv 
+	ON tca.gram_id = mv.Std_Village_Code
+	LEFT JOIN master_panchayats mp
+	ON tca.gp_ward_id = mp.Std_Panchayat_Code
+	LEFT JOIN master_nagar_ward_suda mnw
+	ON tca.gp_ward_id = mnw.ward_no 
+	AND mnw.district_lgd = tca.district_id
+	AND mnw.nagar_code = tca.block_nagar_id
+	AND mnw.nagar_type = tca.nnn_type
     WHERE tca.comp_id = ? AND tca.app_status NOT IN (?)`;
     returnData = await sqlFunction(sql, [comp_id,'C']);
     console.log("returnData",returnData);
@@ -246,7 +262,21 @@ acbOperations['acbComplaintForward'] = async (req,res) =>{
     let department_id = req.body.dept_id;
     let district_id = returnData[0].distId;
     let applicantName = returnData[0].applicantName;
-    let address = returnData[0].nikay;
+    let address = '';
+    let distNameHin = returnData[0].distNameHin;
+    if(returnData[0].nikay == 'Rural'){
+        let villageNameHin = returnData[0].villageNameHin == null ? "नही दिया गया है" : returnData[0].villageNameHin;
+        let panchayatNameHin = returnData[0].gramPanchayatNameHin == null ? "नही दिया गया है" : returnData[0].gramPanchayatNameHin;
+        let blockNagarName = returnData[0].blockNagarName == null ? "नही दिया गया है" : returnData[0].blockNagarName;
+        
+         address = "ग्राम - " +villageNameHin+ " ,पंचायत - " +panchayatNameHin+ " , ब्लॉक - " +blockNagarName+ " , जिला - " +distNameHin+ " ";
+    }else{
+        let wardNameHin = returnData[0].wardNameHin == null ? "नही दिया गया है" : returnData[0].wardNameHin;
+        let blockNagarName = returnData[0].blockNagarName == null ? "नही दिया गया है" : returnData[0].blockNagarName;
+
+         address = "वार्ड - " +wardNameHin+ " ,नगर - ( " +blockNagarName+ " ) , जिला - " +distNameHin+ " ";
+       }
+
     let mobile = returnData[0].applicantMobile;
     let subject = "";
     sql = `SELECT md.dept_id deptId,md.dept_name_hi deptNameHin,
@@ -339,7 +369,7 @@ acbOperations['acbComplaintForward'] = async (req,res) =>{
                 return res.send({message: "Error in updating status ! please try again later"});
             }
         }
-        res.send({ message: "शिकायत क्रमांक : " +comp_id+ " संबंधित विभाग : "+deptNameHin+ " को सफलतापूर्वक भेजी गयी है", response_status: 200 });
+        res.send({ message: "शिकायत क्रमांक : " +comp_id+ " , संबंधित विभाग ( "+deptNameHin+ " ) को सफलतापूर्वक भेजी गयी है", response_status: 200 });
     }catch (e) {
         console.log(e);
         res.send({message: "Technical Error..."});
