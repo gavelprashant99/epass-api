@@ -281,6 +281,28 @@ acbOperations['acbComplaintForward'] = async (req,res) =>{
 
          address = "वार्ड - " +wardNameHin+ " ,नगर - ( " +blockNagarName+ " ) , जिला - " +distNameHin+ " ";
        }
+    let returnDataFile = '';
+    sqlGetFile = `SELECT tf.file_id fileId , tf.original_file_name orignalFIleName,
+    tf.uploaded_file_name uploadedFileName, tf.file_type fileType,
+    tf.file_category fileCategory , tf.file_url fileUrl , 
+    tf.file_size fileSize
+    FROM tbl_file_upload_acb tf 
+    WHERE tf.fk_complaint_id = ? AND tf.is_resolution_file = ?
+    AND tf.file_category IN (?,?)`;
+     
+    returnDataFile = await sqlFunction(sqlGetFile,[comp_id,0,'A','V']);
+    let audioFileName = '';
+    let videoFileName = '';
+    if(returnDataFile.length>0){  
+        if(returnDataFile.length == 2){
+            videoFileName = returnDataFile[0].uploadedFileName == null || undefined ? 'नही दिया गया है' : returnDataFile[0].uploadedFileName;
+            audioFileName = returnDataFile[1].uploadedFileName == null || undefined ? 'नही दिया गया है' : returnDataFile[1].uploadedFileName;
+        }else{
+            audioFileName = returnDataFile[0].uploadedFileName == null || undefined ? 'नही दिया गया है' : returnDataFile[0].uploadedFileName;
+        } 
+         
+    }
+
 
     let dafeOfevent =  returnData[0].dateOfEvent == null ? "नही दिया गया है" : returnData[0].dateOfEvent;
     let timeOfEvent =  returnData[0].timeOfEvent == null ? "नही दिया गया है" : returnData[0].timeOfEvent;;  
@@ -297,8 +319,8 @@ acbOperations['acbComplaintForward'] = async (req,res) =>{
     6) पद : ` +accused_designation+ ` 
     
     शिकायतकर्ता द्वारा अपलोड की गयी फाईल ( ऑडियो & विडियो) की जानकारी
-    फाईल ( ऑडियो ) का क्रमांक :
-    फाईल ( विडियो ) का क्रमांक : 
+    फाईल ( ऑडियो ) का क्रमांक : ` +audioFileName+ ` 
+    फाईल ( विडियो ) का क्रमांक : ` +videoFileName+ ` 
     `;
     sql = `SELECT tc.from_officer, tc.to_officer, tc.district_id, tc.block_nagar_id, tc.status, tc.remark FROM tbl_complaint_ledger_acb tc
     WHERE tc.comp_id = ? AND tc.is_active = ? AND tc.status != ?`;
@@ -371,7 +393,7 @@ acbOperations['acbComplaintForward'] = async (req,res) =>{
         VALUES (?,?,?,?,?,?,?,?,?)`;
         returnData = await sqlFunction(sql, [comp_id,to_officer,department_id,applicant_district_id,block_nagar_id,froward_remark,1,'F',ip_address]);
         if (returnData.affectedRows != undefined && returnData.affectedRows > 0) {
-            let sqlUpdateStatus = `UPDATE tbl_complaint_acb SET app_status = 'F' WHERE comp_id = ?`
+            let sqlUpdateStatus = `UPDATE tbl_complaint_acb SET app_status = ? WHERE comp_id = ?`
             returnData = await sqlFunction(sqlUpdateStatus,['F',comp_id]);
             if(returnData.affectedRows == undefined && returnData.affectedRows<=0){
                 return res.send({message: "Error in updating status ! please try again later"});
