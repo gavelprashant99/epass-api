@@ -255,7 +255,7 @@ acbOperations['acbComplaintForward'] = async (req,res) =>{
 	AND mnw.nagar_code = tca.block_nagar_id
 	AND mnw.nagar_type = tca.nnn_type
     LEFT JOIN master_departments mds
-	ON tca.department_id = mds.dept_id 
+	ON tca.accused_department = mds.dept_id 
     WHERE tca.comp_id = ? AND tca.app_status NOT IN (?)`;
     returnData = await sqlFunction(sql, [comp_id,'C']);
     console.log("returnData",returnData);
