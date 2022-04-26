@@ -228,7 +228,8 @@ acbOperations['acbComplaintForward'] = async (req,res) =>{
     let comp_id = req.body.comp_id;
     sql = `SELECT tca.id id ,tca.comp_id compId,tca.applicant_name applicantName,
     tca.applicant_mobile applicantMobile , tca.applicant_email email,
-    tca.department_id deptId, tca.cmpt_code cmptCode, tca.cmpt_sub_code
+    tca.department_id deptId,mds.dept_name_hi deptNameHin, mds.dept_name_eng deptNaneEng, 
+    tca.cmpt_code cmptCode,tca.cmpt_sub_code
     cmptSubCode, tca.district_id distId, md.District_Name distNameHin, 
 	tca.nikay nikay,
     tca.nnn_type nnntype , tca.block_nagar_id blockNagarId, 
@@ -253,13 +254,17 @@ acbOperations['acbComplaintForward'] = async (req,res) =>{
 	AND mnw.district_lgd = tca.district_id
 	AND mnw.nagar_code = tca.block_nagar_id
 	AND mnw.nagar_type = tca.nnn_type
+    LEFT JOIN master_departments mds
+	ON tca.department_id = mds.dept_id 
     WHERE tca.comp_id = ? AND tca.app_status NOT IN (?)`;
     returnData = await sqlFunction(sql, [comp_id,'C']);
     console.log("returnData",returnData);
     if(returnData.length <= 0) {
     return res.send({message: "Complaint Id is Invalid Or its closed",response_status: 404});
     }
-    let department_id = req.body.dept_id;
+    let department_id = returnData[0].deptId;
+    let deptNameHin = returnData[0].deptNameHin;
+    let deptNameEng = returnData[0].deptNameEng;
     let district_id = returnData[0].distId;
     let applicantName = returnData[0].applicantName;
     let address = '';
@@ -277,21 +282,24 @@ acbOperations['acbComplaintForward'] = async (req,res) =>{
          address = "वार्ड - " +wardNameHin+ " ,नगर - ( " +blockNagarName+ " ) , जिला - " +distNameHin+ " ";
        }
 
+    let dafeOfevent =  returnData[0].dateOfEvent == null ? "नही दिया गया है" : returnData[0].dateOfEvent;
+    let timeOfEvent =  returnData[0].timeOfEvent == null ? "नही दिया गया है" : returnData[0].timeOfEvent;;  
+    let placeOfEvent =  returnData[0].placeOfEvent == null ? "नही दिया गया है" : returnData[0].placeOfEvent;;  
+    let accusedOfficerName =  returnData[0].accusedOfficerName == null ? "नही दिया गया है" : returnData[0].accusedOfficerName;;  
+    let accused_designation =  returnData[0].accused_designation == null ? "नही दिया गया है" : returnData[0].accused_designation;;  
     let mobile = returnData[0].applicantMobile;
-    let subject = "";
-    sql = `SELECT md.dept_id deptId,md.dept_name_hi deptNameHin,
-    md.dept_name_eng deptNameEng,md.dept_code deptCode,
-    md.model model , md.hide hide FROM master_departments md
-    WHERE md.dept_id = ?`;
-    returnData = await sqlFunction(sql, [department_id]);
-    let deptNameEng = '';
-    let deptNameHin = '';
-    if(returnData.length <= 0) {
-        return res.send({message: "Department Id Is Invalid !",response_status: 404});
-    }else{
-        deptNameEng = returnData[0].deptNameEng;
-        deptNameHin = returnData[0].deptNameHin;
-    }
+    let subject = `यह शिकायत ACB द्वारा मूलत: विभाग : ` +deptNameHin+ ` , को अग्रेषित है ।
+    1) विभाग का नाम :  ` +deptNameHin+ ` 
+    2) घटना की तारीख : ` +dafeOfevent+ ` 
+    3) घटना का समय : ` +timeOfEvent+ ` 
+    4) घटना का स्थान : ` +placeOfEvent+ ` 
+    5) नाम जिसके खिलाफ शिकायत की गयी है : ` +accusedOfficerName+ ` 
+    6) पद : ` +accused_designation+ ` 
+    
+    शिकायतकर्ता द्वारा अपलोड की गयी फाईल ( ऑडियो & विडियो) की जानकारी
+    फाईल ( ऑडियो ) का क्रमांक :
+    फाईल ( विडियो ) का क्रमांक : 
+    `;
     sql = `SELECT tc.from_officer, tc.to_officer, tc.district_id, tc.block_nagar_id, tc.status, tc.remark FROM tbl_complaint_ledger_acb tc
     WHERE tc.comp_id = ? AND tc.is_active = ? AND tc.status != ?`;
     compData = await sqlFunction(sql, [comp_id,1,'C']);

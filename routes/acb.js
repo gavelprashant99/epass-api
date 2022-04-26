@@ -183,9 +183,6 @@ router.post("/updateResolution/",ResUpload,[
 router.post("/acbComplaintForward/",[
     check("comp_id", "Please enter complaint id")
     .not()
-    .isEmpty(),
-    check("dept_id", "Please enter department id")
-    .not()
     .isEmpty()
 ],async (req, res) => {
     //console.log("=========",req.body);
