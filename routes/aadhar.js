@@ -10,10 +10,10 @@ const router = express.Router();
 
 
 router.post("/aadharAuth", [
-    check("aadhar_no", "Please enter a Aadhar no.")
+    check("aadhar_number", "Please enter a Aadhar no.")
         .not()
         .isEmpty(),
-    check("name", "Please enter a Name")
+    check("applicantname", "Please enter a applicantname")
         .not()
         .isEmpty()   
 ], async (req, res) => {
@@ -28,7 +28,7 @@ router.post("/aadharAuth", [
 * @url - /aadhar/aadharAuth
 */
 router.post("/aadharVerifyOTP", [
-    check("aadhar_no", "Please enter a Aadhar no.")
+    check("aadhar_number", "Please enter a Aadhar no.")
         .not()
         .isEmpty(),
     check("otp", "Please enter a OTP")

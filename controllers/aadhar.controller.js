@@ -20,25 +20,25 @@ aadharOperations["aadharAuth"] = async (req, res) => {
   }
 
   let txn = Date.now(); // use current timestamp and store it to match with response key => CTS;
-  let headers = { "Req_Data": aesEncryption(req.body.aadhar_no + '|' + req.body.name + '|' + txn + '|AUA-CJS', encToken) };
+  let headers = { "Req_Data": aesEncryption(req.body.aadhar_number + '|' + req.body.applicantname + '|' + txn + '|AUA-CJS', encToken) };
   let url = "http://testpehchan.cgstate.gov.in:8082/RestAdv/auth/WebService/getAuthStatus";
   try {
     let apiResponse = await callPostAPI(url, headers);
     let decryptedData = JSON.parse(aesDecryption(apiResponse, decToken));
     if (decryptedData.hasOwnProperty("AuthRes") && decryptedData.AuthRes === "y") {
       let txn = Date.now();
-      headers = {"Req_Data": aesEncryption(req.body.aadhar_no + '|OTP|01|' + txn + "pmg" + '|AUA-CJS', encToken)};
+      headers = {"Req_Data": aesEncryption(req.body.aadhar_number + '|OTP|01|' + txn + "pmg" + '|AUA-CJS', encToken)};
       url = "http://testpehchan.cgstate.gov.in:8082/RestAdv/auth/WebService/generateOtp";
       await sqlFunction("INSERT INTO aadhar_otp (`txn`) VALUES (?)", [txn]);
 
       let apiResponse = await callPostAPI(url, headers);
       apiResponse = aesDecryption(apiResponse, decToken).split(",");
-      res.json({"txn": apiResponse[11].trim()});
+      res.json({"txn": apiResponse[11].trim(),"response_status": 200});
 
     } else if (decryptedData.hasOwnProperty("AuthRes") && decryptedData.AuthRes === "n") {
-      res.json({ "Aadhar": "Invalid Name Provided" });
+      res.json({ "Aadhar": "Invalid Name Provided", "response_status": 400, "error_type":1});
     } else if (decryptedData.hasOwnProperty("AuthRes") && decryptedData.AuthRes === "E-12") {
-      res.json({ "Aadhar": "Invalid Number Provided" });
+      res.json({ "Aadhar": "Invalid Number Provided", "response_status": 400, "error_type":2 });
     } else {
       res.json(decryptedData);
     }
@@ -56,7 +56,7 @@ aadharOperations["aadherOTPVerify"] = async (req, res) => {
       response_status: 400,
     });
   }
-  let aadharNumber = req.body.aadhar_no;
+  let aadharNumber = req.body.aadhar_number;
   let otp = req.body.otp;
   let txn = req.body.txn;
   headers = {"Req_Data": aesEncryption(aadharNumber + '|OTP|' + otp + '|' + txn + '|AUA-CJS', encToken)};
@@ -83,7 +83,7 @@ aadharOperations["aadharOperation"] = async (req, res) => {
     });
   }
   let operation = req.params.operation;
-  let aadharNumber = req.query.aadhar_no;
+  let aadharNumber = req.query.aadhar_number;
   let txn = Date.now();
   let headers = {"Req_Data": aesEncryption('A|' + aadharNumber + '|0|' + txn + "pmg" + '|AUA-CJS', encToken)};
   if (operation === "advtoAdh") {

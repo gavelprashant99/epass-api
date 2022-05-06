@@ -138,12 +138,12 @@ operations['usersignup'] = async (req, res) => {
     // let Is_OTP_Verified = 0;
 
     try {
-        sql = "SELECT is_verified FROM `tbl_otp_verification` WHERE mobile = ? ORDER BY id DESC LIMIT 1";
-        returnData = await sqlFunction(sql,[username]);
-        if(returnData.length==0){
-            res.send({ message: "Mobile number is not verified","response_status": 403});
-        }
-        else if (returnData[0]['is_verified']==1) {
+        // sql = "SELECT is_verified FROM `tbl_otp_verification` WHERE mobile = ? ORDER BY id DESC LIMIT 1";
+        // returnData = await sqlFunction(sql,[username]);
+        // if(returnData.length==0){
+        //     res.send({ message: "Mobile number is not verified","response_status": 403});
+        // }
+        // else if (returnData[0]['is_verified']==1) {
             sql = "SELECT mobile FROM tbl_user_login WHERE mobile =?";
             returnData = await sqlFunction(sql,[username]);
             if (returnData.length == 0) {
@@ -184,10 +184,10 @@ operations['usersignup'] = async (req, res) => {
             else {
                 res.send({ message: "User already exists","response_status": 403 });
             }
-        }
-        else {
-            res.send({ message: "Otp is not verified","response_status": 400 });
-        }
+        // }
+        // else {
+        //     res.send({ message: "Otp is not verified","response_status": 400 });
+        // }
     } catch (e) {
         console.log(e);
         res.send({ message: "Error in Inserting Data","response_status": 400});

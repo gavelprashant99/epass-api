@@ -70,6 +70,7 @@ router.post("/signup", [
             min: 6
         })
 ], async (req, res) => {
+    console.log(res.body);
     const operations = require("../controllers/user.controller");
     operations['usersignup'](req, res);
 });
