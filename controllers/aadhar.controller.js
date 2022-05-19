@@ -21,7 +21,7 @@ aadharOperations["aadharAuth"] = async (req, res) => {
 
   let txn = Date.now(); // use current timestamp and store it to match with response key => CTS;
   let headers = { "Req_Data": aesEncryption(req.body.aadhar_number + '|' + req.body.applicantname + '|' + txn + '|AUA-CJS', encToken) };
-  let url = "http://testpehchan.cgstate.gov.in:8082/RestAdv/auth/WebService/getAuthStatus";
+  let url = "http://pehchan.cgstate.gov.in:8082/RestAdv/auth/WebService/getAuthStatus";
   let ipAddress =  req.socket.remoteAddress;
   try {
     let apiResponse = await callPostAPI(url, headers);
@@ -35,7 +35,7 @@ aadharOperations["aadharAuth"] = async (req, res) => {
     if (decryptedData.hasOwnProperty("AuthRes") && decryptedData.AuthRes === "y") {
       let txn = Date.now();
       headers = {"Req_Data": aesEncryption(req.body.aadhar_number + '|OTP|01|' + txn + "pmg" + '|AUA-CJS', encToken)};
-      url = "http://testpehchan.cgstate.gov.in:8082/RestAdv/auth/WebService/generateOtp";
+      url = "http://pehchan.cgstate.gov.in:8082/RestAdv/auth/WebService/generateOtp";
       await sqlFunction("INSERT INTO aadhar_otp (`txn`) VALUES (?)", [txn]);
 
       let apiResponse = await callPostAPI(url, headers);
@@ -73,7 +73,7 @@ aadharOperations["aadherOTPVerify"] = async (req, res) => {
   let txn = req.body.txn;
   let ipAddress =  req.socket.remoteAddress;
   headers = {"Req_Data": aesEncryption(aadharNumber + '|OTP|' + otp + '|' + txn + '|AUA-CJS', encToken)};
-  url = "http://testpehchan.cgstate.gov.in:8082/RestAdv/auth/WebService/verifyOtp";
+  url = "http://pehchan.cgstate.gov.in:8082/RestAdv/auth/WebService/verifyOtp";
   try{
     let apiResponse = await callPostAPI(url, headers);
       apiResponse = JSON.parse(aesDecryption(apiResponse, decToken));
@@ -113,7 +113,7 @@ aadharOperations["aadharOperation"] = async (req, res) => {
 
   try {
       let response = {"msg":"", status:200};
-      let url = "http://testpehchan.cgstate.gov.in:8082/RestAdv/auth/WebService/" + operation;
+      let url = "http://pehchan.cgstate.gov.in:8082/RestAdv/auth/WebService/" + operation;
       let apiResponse = await callPostAPI(url, headers);
 
       apiResponse = aesDecryption(apiResponse, decToken).split("|");
