@@ -12,7 +12,9 @@ const fs = require('fs');
 
 var storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        let uploadPath = "./upload_files";
+        
+        // let uploadPath = "./upload_files";  // for local 
+           let uploadPath = "./acb_upload_files"; // for server
         if (!fs.existsSync(uploadPath)) {
             fs.mkdirSync(uploadPath);
         }
