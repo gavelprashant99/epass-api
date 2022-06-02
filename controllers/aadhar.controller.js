@@ -3,6 +3,7 @@ const crypto = require("crypto");
 const request = require("request");
 const express = require("express");
 const { validationResult } = require("express-validator");
+const { exit } = require("process");
 // const jwt = require("jsonwebtoken");
 const encToken = '5d41402abc4b2a76b9719d911017c592';
 const decToken = 'thr538ndtrofa6oysqnelxo6a4i4z5o9';
@@ -24,25 +25,25 @@ aadharOperations["aadharAuth"] = async (req, res) => {
   let url = "http://testpehchan.cgstate.gov.in:8082/RestAdv/auth/WebService/getAuthStatus";
   let ipAddress =  req.socket.remoteAddress;
   try {
-    let apiResponse = await callPostAPI(url, headers);
-    let decryptedData = JSON.parse(aesDecryption(apiResponse, decToken));
+    let apiResponseNew = await callPostAPI(url, headers);
+    let decryptedData = JSON.parse(aesDecryption(apiResponseNew, decToken));
 
     let status = "";
     status = decryptedData.AuthRes === "y"?"y":"n";
 
-    // await sqlFunction(aadharSql,[1, aesDecryption(apiResponse, decToken), status, ipAddress]);
+    await sqlFunction(aadharSql,[1, apiResponseNew, status, ipAddress]);
     
     if (decryptedData.hasOwnProperty("AuthRes") && decryptedData.AuthRes === "y") {
       let txn = Date.now();
       headers = {"Req_Data": aesEncryption(req.body.aadhar_number + '|OTP|01|' + txn + "pmg" + '|AUA-CJS', encToken)};
       url = "http://testpehchan.cgstate.gov.in:8082/RestAdv/auth/WebService/generateOtp";
-    //  await sqlFunction("INSERT INTO aadhar_otp (`txn`) VALUES (?)", [txn]);
+     await sqlFunction("INSERT INTO aadhar_otp (`txn`) VALUES (?)", [txn]);
 
-      let apiResponse = await callPostAPI(url, headers);
-      let tempRes = aesDecryption(apiResponse, decToken);
+      let apiResponseNew = await callPostAPI(url, headers);
+      let tempRes = aesDecryption(apiResponseNew, decToken);
       apiResponse = tempRes.split(",");
 
-      // await sqlFunction(aadharSql,[2, tempRes, null, ipAddress]);
+      await sqlFunction(aadharSql,[2, apiResponseNew, null, ipAddress]);
 
       res.json({"txn": apiResponse[11].trim(),"response_status": 200});
 
@@ -54,8 +55,8 @@ aadharOperations["aadharAuth"] = async (req, res) => {
       res.json(decryptedData);
     }
   } catch (err) {
-    console.log("Error =========>", err);
-    // await sqlFunction(aadharSql,[1, res.json({ "Error": err }), 'n', ipAddress]);
+    // console.log("Error =========>", err);
+    await sqlFunction(aadharSql,[1, res.json({ "Error": err }), 'n', ipAddress]);
     res.json({ "Error": err });
   }
 };
@@ -75,21 +76,21 @@ aadharOperations["aadherOTPVerify"] = async (req, res) => {
   headers = {"Req_Data": aesEncryption(aadharNumber + '|OTP|' + otp + '|' + txn + '|AUA-CJS', encToken)};
   url = "http://testpehchan.cgstate.gov.in:8082/RestAdv/auth/WebService/verifyOtp";
   try{
-    let apiResponse = await callPostAPI(url, headers);
-      apiResponse = JSON.parse(aesDecryption(apiResponse, decToken));
+    let apiResponseNew = await callPostAPI(url, headers);
+      apiResponse = JSON.parse(aesDecryption(apiResponseNew, decToken));
       // res.json({"is_valid": apiResponse.AuthRes});
       // console.log(apiResponse);
       let status =  apiResponse.AuthRes=='y'?'y':'n';
-      // await sqlFunction(aadharSql,[3, apiResponse, status, ipAddress]);
+      await sqlFunction(aadharSql,[3, apiResponseNew, status, ipAddress]);
 
-      if( apiResponse.AuthRes=='y'){
+      if(apiResponse.AuthRes=='y'){
         return res.send({ message: "valid user","response_status": 200});
       }else{
         return res.send({ message: "invalid user","response_status": 400});
       }
   }catch (err) {
+    await sqlFunction(aadharSql,[3, res.json({ "Error": err }), 'n', ipAddress]);
     res.json({ "Error": err });
-    // await sqlFunction(aadharSql,[3, res.json({ "Error": err }), 'n', ipAddress]);
   }
 };
 aadharOperations["aadharOperation"] = async (req, res) => {
@@ -102,7 +103,8 @@ aadharOperations["aadharOperation"] = async (req, res) => {
   }
   let ipAddress =  req.socket.remoteAddress;
   let operation = req.params.operation;
-  let aadharNumber = req.query.aadhar_number;
+  let aadharNumber = req.body.aadhar_number;//req.query.aadhar_number;
+  let mobileno = req.body.mobileno;
   let txn = Date.now();
   let headers = {"Req_Data": aesEncryption('A|' + aadharNumber + '|0|' + txn + "pmg" + '|AUA-CJS', encToken)};
   if (operation === "advtoAdh") {
@@ -110,23 +112,21 @@ aadharOperations["aadharOperation"] = async (req, res) => {
       let result = await sqlFunction("SELECT ref,txn FROM aadhar_ref WHERE user_id = ?",[user_id]);
       headers = {"Req_Data": aesEncryption('B|' + result[0].ref +"|"+ result[0].txn + 'pmg|AUA-CJS', encToken)};
   }
-
   try {
       let response = {"msg":"", status:200};
       let url = "http://testpehchan.cgstate.gov.in:8082/RestAdv/auth/WebService/" + operation;
-      let apiResponse = await callPostAPI(url, headers);
-
-      apiResponse = aesDecryption(apiResponse, decToken).split("|");
-      // await sqlFunction(aadharSql,[4,  aesDecryption(apiResponse, decToken), null, ipAddress]);
+      let apiResponseNew = await callPostAPI(url, headers);
+      apiResponse = aesDecryption(apiResponseNew, decToken).split("|");
+      await sqlFunction(aadharSql,[4,apiResponseNew, null, ipAddress]);
 
       if (operation === "adhtoAdv" && apiResponse.length===4) {
-          await sqlFunction("INSERT INTO `aadhar_ref`(`user_id`, `ref`,`txn`) VALUES (?,?,?)", ['1', apiResponse[0] + "|" + apiResponse[1], apiResponse[3]]);
+          await sqlFunction("INSERT INTO `aadhar_ref`(`user_id`, `ref`,`txn`) VALUES (?,?,?)", [mobileno, apiResponse[0] + "|" + apiResponse[1], apiResponse[3]]);
           res.json(response.msg = "Operation successful");
       }
       res.json(response.msg = apiResponse);
   } catch (err) {
+      await sqlFunction(aadharSql,[4, res.json({ "Error": err }), 'n', ipAddress]);
       res.json({"Error: ": err});
-      // await sqlFunction(aadharSql,[4, res.json({ "Error": err }), 'n', ipAddress]);
   }
 };
 
