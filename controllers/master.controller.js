@@ -1,381 +1,537 @@
 const connection = require("../config/mysqldb");
 const express = require("express");
 const router = express.Router();
-const {check, validationResult} = require("express-validator");
+const { check, validationResult } = require("express-validator");
+const jwt = require("jsonwebtoken");
+
+const Encryption = require('node_triple_des');
+
+// const auth = require("../middleware/auth");
 
 const operations = [];
+const sha = require('js-sha512');
+const util = require("./util");
 
-
-// get distt
-operations['get_districts'] = (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(200).json({
-            errors: errors.array(), "status": 400
-        });
-    }
-    try {
-        return new Promise((resolve, reject) => {
-            let sql = "SELECT d.LGD_CODE `distt_lgd_code`,d.District_ID `distt_id`,d.District_Name `distt_name_hin`," +
-                "d.DBStart_Name_En `distt_name_en` FROM master_districts d ORDER BY d.DBStart_Name_En ASC"
-            connection.query(sql, function (error, result) {
-                if (error) {
-                    reject(error);
-                } else {
-                    resolve(res.json(result));
-                }
-            });
-        });
-    } catch (e) {
-        console.log(e);
-        res.send({message: "Error in Fetching Data"});
-    }
-};
-
-// get blocks and panchayat
-operations['get_blocks_panchayat_gram'] = (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(200).json({
-            errors: errors.array(), "status": 400
-        });
-    }
-    let distt_lgd_code = req.params.distt_lgd_code == undefined ? 0 : req.params.distt_lgd_code;
-    let block_lgd_code = req.params.block_lgd_code == undefined ? 0 : req.params.block_lgd_code;
-    let std_panchayat_code = req.params.std_panchayat_code == undefined ? 0 : req.params.std_panchayat_code;
-    let sql = "";
-    let whereData = [];
-    // console.log(distt_lgd_code+"/"+block_lgd_code);
-    try {
-        if (distt_lgd_code > 0 && block_lgd_code > 0 && std_panchayat_code > 0) {
-            sql = "SELECT v.LGD_BlockCode block_lgd_code, v.Std_Panchayat_Code std_panchayat_code, v.Std_Village_Code std_village_code, "
-                + "v.LGD_VillageCode village_lgd_code, v.LGD_Census2001Code census_2001_code, v.LGD_Census2011Code census_2011_code, "
-                + "v.Village_Name village_name_hin, v.Village_Name_En village_name_eng "
-                + "FROM master_villages v "
-                + "WHERE v.LGD_DistrictCode =? AND v.Std_Block_Code = ? AND v.Std_Panchayat_Code =? ORDER BY v.Village_Name ASC ";
-            whereData = [distt_lgd_code, block_lgd_code, std_panchayat_code];
-        } else if (distt_lgd_code > 0 && block_lgd_code > 0) {
-            sql = "SELECT p.LGD_BlockCode block_lgd_code, p.Std_Panchayat_Code std_panchayat_code, p.Gram_Panchayat_Hi panchayat_hin, "
-                + "p.Gram_Panchayat_En panchayat_en FROM master_panchayats p WHERE p.LGD_DistrictCode = ? AND p.Std_Block_Code = ? order by p.Gram_Panchayat_Hi ASC";
-            whereData = [distt_lgd_code, block_lgd_code];
-        } else if (distt_lgd_code > 0) {
-            sql = "SELECT b.Std_Block_Code std_block_code ,b.LGD_BlockCode block_lgd_code,b.Block_Name `block_name_hin`,b.Block_Name_En `block_name_en`"
-                + " FROM master_blocks b where b.LGD_DistrictCode=? order by b.Block_Name_En ASC ";
-            whereData = [distt_lgd_code];
-        }
-
-        if (distt_lgd_code > 0 || block_lgd_code > 0) {
-            return new Promise((resolve, reject) => {
-                connection.query(sql, whereData, function (error, result) {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        if (result.length > 0) {
-                            resolve(res.json(result));
-                        } else {
-                            resolve(res.send({message: "No Data found"}));
-                        }
-                    }
-                });
-            });
-        } else {
-            res.send({message: "Data missing"});
-        }
-    } catch (e) {
-        console.log(e);
-        res.send({message: "Error in Fetching"});
-    }
-};
-
-// get nagars and wards
-operations['get_nagar_ward_colony'] = (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(200).json({
-            errors: errors.array(), "status": 400
-        });
-    }
-    let distt_lgd_code = req.params.distt_lgd_code == undefined ? 0 : req.params.distt_lgd_code;
-    let std_town_code = req.params.std_town_code == undefined ? 0 : req.params.std_town_code;
-    let ward_no = req.params.ward_no == undefined ? 0 : req.params.ward_no;
-    let sql = "";
-    let nnn_type = req.params.nnn_type == undefined ? 0 : req.params.nnn_type;
-    console.log(nnn_type);
-    let whereData = [];
-    // console.log(distt_lgd_code+"/"+std_town_code);
-    try {
-        if(distt_lgd_code > 0 && std_town_code > 0 && ward_no > 0){
-            sql = "SELECT id as colony_id, district_lgd distt_lgd_code, std_nnn_code std_town_code, colony as colony_name FROM `master_colony_suda` "
-                +" where district_lgd = ? AND std_nnn_code = ? AND ward =?";
-            whereData = [distt_lgd_code, std_town_code, ward_no];
-        }
-        else if (distt_lgd_code > 0 && std_town_code > 0) {
-            // sql = "SELECT d.LGD_CODE distt_lgd_code, w.Std_Town_Code std_town_code, w.Ward_No ward_no, w.Ward_Name ward_name_hin"
-            //     + " FROM master_nagriya_wards w"
-            //     + " INNER JOIN master_districts d ON w.Dist_ID = d.District_ID"
-            //     + " WHERE d.LGD_CODE= ? AND w.Std_Town_Code = ?"; // old code
-            sql = "SELECT d.LGD_CODE distt_lgd_code, w.nagar_code std_town_code, w.ward_no ward_no, w.ward_name_hin ward_name_hin,w.ward_name_eng ward_name_eng"
-                + " FROM master_nagar_ward_suda w"
-                + " INNER JOIN master_districts d ON w.district_id = d.District_ID"
-                + " WHERE d.LGD_CODE= ? AND w.nagar_code = ? order by w.ward_no ASC";
-            whereData = [distt_lgd_code, std_town_code];
-        } else if (distt_lgd_code > 0) {
-            // sql = "SELECT d.LGD_CODE distt_lgd_code, n.Std_NNN_Code std_town_code, n.NNN_Name nagar_name_hin, n.nnn_type, "
-            //     + " n.NNN_Name_En nagar_name_en FROM master_nagriya_nikay n"
-            //     + " INNER JOIN master_districts d ON n.Dist_ID = d.District_ID"
-            //     + " WHERE d.LGD_CODE = ? AND n.NNN_type= ?"; // old code 
-            let condition ="";
-            if(nnn_type!=1)
-                condition = " AND n.nagar_type =? ";
-            sql = "SELECT d.LGD_CODE distt_lgd_code, n.nagar_code std_town_code,n.nagar_name_hin nagar_name_hin, n.nagar_type, "
-                + " n.nagar_name_eng nagar_name_en  FROM master_nagar_suda n"
-                + " INNER JOIN master_districts d ON n.district_id = d.District_ID"
-                + " WHERE d.LGD_CODE = ?"+condition+"order by n.nagar_name_eng ASC";
-            whereData = [distt_lgd_code, nnn_type];
-        }
-
-        console.log(sql);
-
-        if (distt_lgd_code > 0 || std_town_code > 0) {
-            return new Promise((resolve, reject) => {
-                connection.query(sql, whereData, function (error, result) {
-                    if (error)
-                        reject(error);
-                    else {
-                        if (result.length > 0) {
-                            resolve(res.json(result));
-                        } else {
-                            resolve(res.send({message: "No Data found"}));
-                        }
-                    }
-                });
-            });
-        } else {
-            res.send({message: "Data missing"});
-        }
-    } catch (e) {
-        console.log(e);
-        res.send({message: "Error in Fetching"});
-    }
-};
-
-// get Tehsil (Sub District) - For Revenue Dept.
-operations['get_tehsil_by_district'] = (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(200).json({
-            errors: errors.array(), "status": 400
-        });
-    }
-    let distt_lgd_code = req.params.distt_lgd_code == undefined ? 0 : req.params.distt_lgd_code;
-    let sql = "";
-    let whereData = [];
-    let condition = "";
-    // console.log(distt_lgd_code+"/"+block_lgd_code);
-    try {
-        if (distt_lgd_code > 0) {
-            condition += ` WHERE mvn.district_code = ?  `;
-            whereData = [distt_lgd_code];
-        }
-        sql = `SELECT mvn.district_code    distCode,
-                      mvn.subdistrict_code subDistCode,
-                      mvn.subdistrict_name subDistName
-               FROM master_villages_new mvn
-        ` + condition + `
-            GROUP BY mvn.district_code, mvn.subdistrict_code,mvn.subdistrict_name`;
-
-        return new Promise((resolve, reject) => {
-            connection.query(sql, whereData, function (error, result) {
-                if (error) {
-                    reject(error);
-                } else {
-                    if (result.length > 0) {
-                        resolve(res.json(result));
-                    } else {
-                        resolve(res.send({message: "No Data found"}));
-                    }
-                }
-            });
-        });
-    } catch (e) {
-        console.log(e);
-        res.send({message: "Error in Fetching"});
-    }
-};
-
-// get Tehsil (Sub District) - For Revenue Dept.
-operations['get_village_by_tehsil'] = (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(200).json({
-            errors: errors.array(), "status": 400
-        });
-    }
-    let subdist_code = req.params.subdist_code == undefined ? 0 : req.params.subdist_code;
-    let sql = "";
-    let whereData = [];
-    let condition = "";
-    // console.log(distt_lgd_code+"/"+block_lgd_code);
-    try {
-        if (subdist_code > 0) {
-            condition += ` WHERE mvn.subdistrict_code = ? `;
-            whereData = [subdist_code];
-        }
-        sql = `SELECT mvn.district_code   distCode,
-                      mvn.village_code    villageCode,
-                      mvn.village_name_en villNameEng,
-                      mvn.village_name_hi
-               FROM master_villages_new mvn
-        ` + condition + ``;
-
-        return new Promise((resolve, reject) => {
-            connection.query(sql, whereData, function (error, result) {
-                if (error) {
-                    reject(error);
-                } else {
-                    if (result.length > 0) {
-                        resolve(res.json(result));
-                    } else {
-                        resolve(res.send({message: "No Data found"}));
-                    }
-                }
-            });
-        });
-    } catch (e) {
-        console.log(e);
-        res.send({message: "Error in Fetching"});
-    }
-};
-
-
-operations['get_departments'] = (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(200).json({
-            errors: errors.array(), "status": 400
-        });
-    }
-    try {
-        return new Promise((resolve, reject) => {
-            let sql = "SELECT md.dept_id AS id, md.dept_name_hi AS deptNameHi, md.dept_name_eng AS deptNameEn FROM master_departments md ;"
-            connection.query(sql, function (error, result) {
-                if (error) {
-                    reject(error);
-                } else {
-                    resolve(res.json(result));
-                }
-            });
-        });
-    } catch (e) {
-        console.log(e);
-        res.send({message: "Error in Fetching Data"});
-    }
-};
-
-operations['get_master_complaint_types'] = (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(200).json({
-            errors: errors.array(), "status": 400
-        });
-    }
-    let dept_id = req.params.dept_id == undefined ? 0 : req.params.dept_id;
-    let comp_category_code = req.params.comp_category_code == undefined ? 0 : req.params.comp_category_code;
-    let condition = "";
-    let whereData = [];
-    try {
-        return new Promise((resolve, reject) => {
-            if (dept_id > 0) {
-                if (comp_category_code > 0) {
-                    condition = "WHERE mct.fk_master_dept_id = ? AND mct.complain_category_code = ?";
-                    whereData = [dept_id, comp_category_code];
-                } else {
-                    condition = "WHERE mct.fk_master_dept_id = ?";
-                    whereData = [dept_id];
-                }
-                let sql = "SELECT mct.id, mct.complaint_type, mct.complaint_type_hindi, mct.cmpt_code, mct.complaint_category, "
-                    + "mct.complain_category_code, mct.complaint_sub_type, mct.complaint_sub_type_hindi, mct.cmpt_sub_code "
-                    + "FROM "
-                    + "master_complaint_types mct " + condition;
-                
-                connection.query(sql, whereData, function (error, result) {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        let returnData = {};
-                        result.forEach(function (obj, index) {
-
-                                if(returnData.hasOwnProperty(obj.cmpt_code)){
-                                    returnData[obj.cmpt_code].complaint_sub_type.push({
-                                        "id": obj.id,
-                                        "complaint_sub_type": obj.complaint_sub_type,
-                                        "complaint_sub_type_hindi": obj.complaint_sub_type_hindi,
-                                        "cmpt_sub_code": obj.cmpt_sub_code
-                                    });
-                                }else{
-                                    returnData[obj.cmpt_code] = {
-                                        "complaint_type": obj.complaint_type,
-                                        "complaint_type_hindi": obj.complaint_type_hindi,
-                                        "complaint_code": obj.cmpt_code,
-                                        "complaint_category": obj.complaint_category,
-                                        "complaint_sub_type": [
-                                            {
-                                                "id": obj.id,
-                                                "complaint_sub_type": obj.complaint_sub_type,
-                                                "complaint_sub_type_hindi": obj.complaint_sub_type_hindi,
-                                                "cmpt_sub_code": obj.cmpt_sub_code
-                                            }
-                                        ]
-                                    };
-                                }
-
-                        });
-                        resolve(Object.values(returnData));
-                    }
-                });
-            } else {
-                res.send({message: "Data missing"});
+function sqlFunction($sql, $params = []) {
+    return new Promise((resolve, reject) => {
+        connection.connection.query($sql, $params, function (error, results) {
+            if (error) {
+                reject(error);
             }
-
-        });
-    } catch (e) {
-        console.log(e);
-        res.send({message: "Error in Fetching Data"});
-    }
-};
-
-
-operations['get_master_complaint_sub_types'] = (req, res, complaint_type, complaint_code) => {
-    console.log("compType" + complaint_type);
-    console.log("complaintCode" + complaint_code)
-    let whereData = [];
-    let condition = [];
-    let complaintCode = complaint_code == undefined ? 0 : complaint_code;
-    try {
-        return new Promise((resolve, reject) => {
-
-            if (complaintCode == 0) {
-                condition = "WHERE mct.complaint_type = ?";
-                whereData = [complaint_type];
-            } else {
-                condition = "WHERE mct.complaint_type = ? and mct.complain_category_code = ?";
-                whereData = [complaint_type, complaintCode];
+            else {
+                resolve(results == undefined ? [] : results);
             }
-
-            let sql = "SELECT mct.id,  mct.complaint_sub_type, mct.complaint_sub_type_hindi, mct.cmpt_sub_code FROM master_complaint_types mct " + condition + " ";
-
-            connection.query(sql, whereData, function (error, result) {
-                console.log(sql);
-                if (error) {
-                    reject(error);
-                } else {
-                    resolve(result);
-                }
-            });
         });
+    });
+}
+
+function sqlFunctionAadhar($sql, $params = []) {
+    return new Promise((resolve, reject) => {
+        connection.connectionaadhar.query($sql, $params, function (error, results) {
+            if (error) {
+                reject(error);
+            }
+            else {
+                resolve(results == undefined ? [] : results);
+            }
+        });
+    });
+}
+
+function numberToChar(number){
+    let str =  number.split('')
+    const code = 'A'.charCodeAt(0);
+    let reference = [];
+    str.forEach(element => {
+        reference.push(String.fromCharCode(code + parseInt(element)))
+    });
+   return reference.join('');    
+}
+
+async function getReference(hased_aadhar){
+    returnRefe = await sqlFunctionAadhar(`SELECT ad.r_key FROM aadhar_data ad WHERE ad.aadhar_hash = ?`, [hased_aadhar.toString()]);
+    console.log("Reference ",returnRefe);
+    if(returnRefe.length>0)
+    return returnRefe[0].r_key;
+    else 
+    return 0;
+}
+
+async function getSrn(reference){
+
+    srn = await sqlFunction(`SELECT ud.srn FROM user_data ud WHERE ud.reference_no = ?;`, [reference.toString()]);
+    //console.log("SRN : " +srn.length+ " | Reference : "+reference);
+    //console.log("------------------------------------------------");
+    //console.log(srn.length);
+    if(srn.length>0)
+    return srn[0].srn;
+    else 
+    return 0;
+}
+
+
+
+async function setSrn(uname, mno, dob, fname, address, gender, aadhar){
+    let reference = await getReference(aadhar);
+    //console.log("Yes I am calling _______ : "+aadhar);
+    if(reference != 0 ){
+        srn = numberToChar((new Date().getTime() -1650011223344).toString());
+        sqlUser = " INSERT INTO user_data(uname, mobile, dob, fname, address, gender, srn, reference_no) VALUES (?,?,?,?,?,?,?,?)";
+        returnData = await sqlFunction(sqlUser, [uname, mno, dob, fname, address, gender, srn, reference]);
+        if(returnData.affectedRows > 1)
+        return srn;
+        
+    } 
+    return 0;
+    
+}
+
+async function setReference(aadhar,uname, fname, mno, dob){
+
+    console.log("Aadhar data", aadhar);
+
+    let reference = numberToChar(new Date().getTime().toString());
+    let salt_pass_first = util.encrykey + aadhar + util.encrykey;
+    console.log( " aadhar data with key "+salt_pass_first);
+    let mask = "XXXX-XXXX-X"+aadhar.toString().substr(aadhar.toString().length - 3);
+    let hased_aadhar = sha(salt_pass_first);
+
+    let enc = Encryption.encrypt("+$JKI$+0JFJ%##@7~R~$#@GDGggfsdg8Qop", Encryption.encrypt("!~#52148/*fds*&$JIUYGdfasd897er%#R##@op", Encryption.encrypt("@#$%^&*^^-TGHUY(*&^%$%^&*(", aadhar.toString())));
+    
+    returnDataAadhar = await sqlFunctionAadhar(`SELECT ad.r_key FROM aadhar_data ad WHERE ad.aadhar_hash = ?;`, [hased_aadhar.toString()]);
+    //console.log("fkasdfklfkldsflsaklfsd",returnDataAadhar);
+    if(returnDataAadhar.length  == 0){
+        sqlHash = " INSERT INTO aadhar_data (r_key, mobile_number, aadhar_mask, aadhar_hash) VALUES (?,?,?,?)";
+        returnAadharData = await sqlFunctionAadhar(sqlHash, [reference, mno, mask, hased_aadhar]);
+        //Encryption
+        sqlEnc = " INSERT INTO aadhar_encoded (aadhar_no, cname, fname, dob, mobile_no, r_key) VALUES (?,?,?,?,?,?)";
+        returnAadharEncode = await sqlFunctionAadhar(sqlEnc, [enc, uname, fname, dob, mno, reference]);
+        if(returnAadharData.length > 0 && returnAadharEncode.length > 0 ){
+            //console.log("I am from Set Reference - Success", returnAadharData);
+            return reference;
+        }
+        else {
+            //console.log("I am from Set Reference - Fail", returnAadharData);
+            return 0;
+        }
+    }
+    return 0    
+}
+
+//step 1
+let returnData;
+let sql;
+
+//step 3
+operations['scholarship'] = async (req, res) => {
+
+    ////console.log("Here is the request", req);
+    
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(200).json({
+            errors: errors.array(), "response_status": 400
+        });
+    }
+    
+    let mno = req.body.mno;
+    let aadhar = req.body.aadhar;
+    let uname = req.body.uname.trim();
+    let fname = req.body.fname.trim();
+    let gender = req.body.gender;
+    let dob = req.body.dob;
+    let doa = req.body.doa;
+    let add = req.body.add.trim();
+    let enrollment_no = req.body.enroll.trim();
+    let is_gov = req.body.gov;
+
+    try {
+        console.log("Here is the aadhar ", aadhar);
+        let salt_pass_first = util.encrykey + aadhar + util.encrykey;
+        console.log("Here is the salt_pass_first ", salt_pass_first);
+        let hased_aadhar = sha(salt_pass_first);
+        console.log("hash key ",hased_aadhar );
+        let reference = await getReference(hased_aadhar);
+        let srn = await getSrn(reference);
+
+        console.log("Reference : "+ reference + " SRN "+ srn);
+        if(reference != 0 && srn == 0){   
+            srn = await setSrn(uname, mno, dob, fname, add, gender, hased_aadhar);;
+        }
+        if(reference == 0 && srn == 0){   
+            //console.log("-2- aadhar data ", aadhar);
+            reference = await setReference(aadhar,uname, fname, mno, dob);
+            srn = await setSrn(uname, mno, dob, fname, add, gender, hased_aadhar);
+        }
+       reference = await getReference(hased_aadhar);
+       srn = await getSrn(reference);
+        sqlScheme = `INSERT INTO department_scholarship (uname, mobile_number, father_name, gender, 
+            address, enrollment_no, dob, adminsion_date, is_gov, reference_no, srn) VALUES (?,?,?,?,?,?,?,?,?,?,?)`;
+        returnData = await sqlFunction(sqlScheme, [uname, mno, fname, gender, add, enrollment_no, dob, doa, is_gov, reference, srn]);
+        if(returnData.affectedRows > 0)
+            res.send({ message: " Your SRN is: " +srn, data:returnData, "response_status": 200});
+        else 
+            res.send({message:"Duplicate Entry For SRN : " + srn, response_status:202})
+           
     } catch (e) {
-        console.log(e);
+        //console.log(e);
+        res.send({ message: "Error in Inserting Data - " + e.sqlMessage, "response_status": 400 });
     }
 };
+
+operations['pension'] = async (req, res) => {
+
+    ////console.log("Here is the request", req);
+    
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(200).json({
+            errors: errors.array(), "response_status": 400
+        });
+    }
+    
+    let mno = req.body.mno;
+    let aadhar = req.body.aadhar;
+    let uname = req.body.uname.trim();
+    let fname = req.body.fname.trim();
+    let gender = req.body.gender;
+    let dob = req.body.dob;
+    let dor = req.body.dor;
+    let add = req.body.add.trim();
+    let pension_no = req.body.pno.trim();
+    
+
+    try {
+        let salt_pass_first = util.encrykey + aadhar + util.encrykey;
+        let hased_aadhar = sha(salt_pass_first);
+
+        let reference = await getReference(hased_aadhar);
+        let srn = await getSrn(reference);
+        ////console.log("Reference : "+ reference + " SRN "+ srn);
+        if(reference != 0 && srn == 0){   
+            srn = await setSrn(uname, mno, dob, fname, add, gender, hased_aadhar);;
+        }
+        if(reference == 0 && srn == 0){   
+            //console.log("-2- aadhar data ", aadhar);
+            reference = await setReference(aadhar,uname, fname, mno, dob);
+            srn = await setSrn(uname, mno, dob, fname, add, gender, hased_aadhar);
+        }
+       reference = await getReference(hased_aadhar);
+       srn = await getSrn(reference);
+        sqlScheme = `INSERT INTO department_pension (uname, mobile_number, father_name, gender,
+            address, pension_no, dob, retirement_date, reference_no, srn) values (?,?,?,?,?,?,?,?,?,?)`;
+        returnData = await sqlFunction(sqlScheme, [uname, mno, fname, gender, add, pension_no, dob, dor, reference, srn]);
+        if(returnData.affectedRows > 0)
+            res.send({ message: " Your SRN is: " +srn, data:returnData, "response_status": 200});
+        else 
+            res.send({message:"Duplicate Entry For SRN : " + srn, response_status:202})
+           
+    } catch (e) {
+        //console.log(e);
+        res.send({ message: "Error in Inserting Data - " + e.sqlMessage, "response_status": 400 });
+    }
+};
+//step 4
+
+operations['getSrnDetails'] = async (req, res) =>{
+    let aadhar = req.params.aadhar;
+    //console.log("HEre is the aadhar", aadhar);
+    let salt_pass_first = util.encrykey + aadhar + util.encrykey;
+    //console.log("Here is the aadhar with key : ", salt_pass_first);
+    let hased_aadhar = sha(salt_pass_first);
+    //console.log("Here is the aadhar with hash : ", hased_aadhar);
+    let reference = await getReference(hased_aadhar);
+    //console.log("Reference No : ",reference);
+    try{
+        srn = await sqlFunction(`SELECT * FROM user_data ud WHERE ud.reference_no = ?`, [reference.toString()]);
+        console.log("Here is the srn Number for get ", srn);
+        if (srn.length > 0) {
+            res.json({
+                data:srn[0],
+                status:200,
+                message:"Data Fatched Successfully"
+            })
+        }
+        else{
+            res.json({              
+                status:400,
+                message:"No Data Found"
+            })
+        }
+    }
+    catch(e){
+        res.json({ "message": "Error in Finding Data", "response_status": 400 });
+    }
+    
+}
+
+operations['storeAadharData'] = async(req, res) =>{
+    try{
+        srn = await sqlFunction(`SELECT * FROM records_aadhar ud`, []);
+        count = 1;
+        if(srn.length > 0 ){
+            srn.forEach((element,i) => {
+                setTimeout(function(){
+                    console.log("sdfasdf ", element);
+                    let reference = numberToChar(new Date().getTime().toString());
+                    let salt_pass_first = util.encrykey + element.aadhar + util.encrykey;
+                    let mask = "XXXX-XXXX-X"+element.aadhar.toString().substr(element.aadhar.toString().length - 3);
+                    let hased_aadhar = sha(salt_pass_first);
+                    let enc = Encryption.encrypt("+$JKI$+0JFJ%##@7~R~$#@GDGggfsdg8Qop", Encryption.encrypt("!~#52148/*fds*&$JIUYGdfasd897er%#R##@op", Encryption.encrypt("@#$%^&*^^-TGHUY(*&^%$%^&*(", element.aadhar.toString())));
+                    console.log("fasdfads asfdsa ",hased_aadhar)
+                        sqlVerify = "";
+                        sqlHash = " INSERT INTO aadhar_data (r_key, mobile_number, aadhar_mask, aadhar_hash) VALUES (?,?,?,?)";
+                        returnAadharData =  sqlFunctionAadhar(sqlHash, [reference, element.mobile, mask, hased_aadhar]);
+                        sqlEnc = " INSERT INTO aadhar_encoded (aadhar_no, cname, fname, dob, mobile_no, r_key) VALUES (?,?,?,?,?,?)";
+                        returnAadharEncode =  sqlFunctionAadhar(sqlEnc, [enc, element.cname, element.fname, element.dob, element.mobile, reference]);
+                        srn = numberToChar((new Date().getTime() -1650011223344).toString());
+                        sqlUser = " INSERT INTO user_data(uname, mobile, dob, fname, address, gender, srn, reference_no) VALUES (?,?,?,?,?,?,?,?)";
+                        returnData = sqlFunction(sqlUser, [element.cname, element.mobile, element.dob, element.fname, element.address, element.gender, srn, reference]);
+                },100);
+
+            });
+
+        }
+        
+        res.json({              
+            status:400,
+            message:"No Data Found"+count,
+            data:srn
+        })
+    }
+    catch(e){
+        console.log("Error ",e);
+    }
+}
+ //checkMe 
+operations['checkMe'] = async (req, res) =>{
+    
+    try{
+        srn = await sqlFunction(`SELECT * FROM master_district`, []);
+        console.log("Here is the srn Number for get ", srn);
+        if (srn.length > 0) {
+            res.json({
+                data:srn,
+                status:200,
+                message:"Data Fatched Successfully"
+            })
+        }
+        else{
+            res.json({              
+                status:400,
+                message:"No Data Found"
+            })
+        }
+    }
+    catch(e){
+        res.json({ "message": "Error in Finding Data", "response_status": 400 });
+    }
+    
+}
+
+//masterdistricts
+
+operations['district'] = async (req, res) =>{
+    
+    try{
+        srn = await sqlFunction(`SELECT * FROM master_district `, []);
+        console.log("Here is the srn Number for get ", srn);
+        if (srn.length > 0) {
+            res.json({
+                data:srn,
+                status:200,
+                message:"Data Fatched Successfully"
+            })
+        }
+        else{
+            res.json({              
+                status:400,
+                message:"No Data Found"
+            })
+        }
+    }
+    catch(e){
+        res.json({ "message": "Error in Finding Data", "response_status": 400 });
+    }
+    
+}
+
+//villagelist
+
+operations['villagelist'] = async (req, res) =>{
+    var blockId = req.params.block_id;
+    console.log("Here is the distt id ", blockId);
+    try{
+        srn = await sqlFunction(`SELECT * FROM master_villages mv 
+        INNER JOIN temp_block tb ON tb.district_id = mv.district_id  AND tb.block_id = mv.block_id
+        WHERE mv.district_id =44 AND tb.district_id = 44 AND mv.block_id = 2 `, [blockId]);
+        console.log("Here is the srn Number for get ", srn);
+        if (srn.length > 0) {
+            res.json({
+                data:srn,
+                status:200,
+                message:"Data Fatched Successfully"
+            })
+        }
+        else{
+            res.json({              
+                status:400,
+                message:"No Data Found"
+            })
+        }
+    }
+    catch(e){
+        res.json({ "message": "Error in Finding Data", "response_status": 400 });
+    }   
+}
+
+//blocklist
+
+operations['blockList'] = async (req, res) =>{
+    var distId = req.params.dist_id;
+    console.log("Here is the distt id ", distId);
+    try{
+        srn = await sqlFunction(`SELECT * FROM temp_block tb
+        WHERE tb.district_id = ? AND tb.block_id <127 `, [distId]);
+        console.log("Here is the srn Number for get ", srn);
+        if (srn.length > 0) {
+            res.json({
+                data:srn,
+                status:200,
+                message:"Data Fatched Successfully"
+            })
+        }
+        else{
+            res.json({              
+                status:400,
+                message:"No Data Found"
+            })
+        }
+    }
+    catch(e){
+        res.json({ "message": "Error in Finding Data", "response_status": 400 });
+    }   
+}
+
+
+operations['nagarList'] = async (req, res) =>{
+    var distId = req.params.dist_id;
+    console.log("Here is the distt id ", distId);
+    try{
+        srn = await sqlFunction(`SELECT * FROM temp_block tb
+        WHERE tb.district_id = ? AND tb.block_id >127 `, [distId]);
+        console.log("Here is the srn Number for get ", srn);
+        if (srn.length > 0) {
+            res.json({
+                data:srn,
+                status:200,
+                message:"Data Fatched Successfully"
+            })
+        }
+        else{
+            res.json({              
+                status:400,
+                message:"No Data Found"
+            })
+        }
+    }
+    catch(e){
+        res.json({ "message": "Error in Finding Data", "response_status": 400 });
+    }   
+}
+
+
+
+
+operations['villagelist'] = async (req, res) =>{
+    var blockId = req.params.block_id;
+    console.log("Here is the distt id ", blockId);
+    try{
+        srn = await sqlFunction(`SELECT * FROM master_villages mv 
+        INNER JOIN temp_block tb ON tb.district_id = mv.district_id  AND tb.block_id = mv.block_id
+        WHERE mv.district_id =44 AND tb.district_id = 44 AND mv.block_id = 2 `, [blockId]);
+        console.log("Here is the srn Number for get ", srn);
+        if (srn.length > 0) {
+            res.json({
+                data:srn,
+                status:200,
+                message:"Data Fatched Successfully"
+            })
+        }
+        else{
+            res.json({              
+                status:400,
+                message:"No Data Found"
+            })
+        }
+    }
+    catch(e){
+        res.json({ "message": "Error in Finding Data", "response_status": 400 });
+    }   
+}
+
+//panchayatlist
+
+operations['panchaytlist'] = async (req, res) =>{
+    var distId = req.params.dist_id;
+    var blockId = req.params.block_id;
+    console.log("Here is the distt id ", distId);
+    try{
+        srn = await sqlFunction(`SELECT * FROM master_panchayats mp 
+        INNER JOIN temp_block tb ON tb.block_id = mp.Block_ID  AND  tb.district_id = mp.District_ID
+        WHERE  mp.District_ID = ? and tb.block_id = ?   `, [distId, blockId]);
+        console.log("Here is the srn Number for get ", srn);
+        if (srn.length > 0) {
+            res.json({
+                data:srn,
+                status:200,
+                message:"Data Fatched Successfully"
+            })
+        }
+        else{
+            res.json({              
+                status:400,
+                message:"No Data Found"
+            })
+        }
+    }
+    catch(e){
+        res.json({ "message": "Error in Finding Data", "response_status": 400 });
+    }   
+}
+
+//wardlist
+
+operations['wardlist'] = async (req, res) =>{
+    var distId = req.params.dist_id;
+    var wardId = req.params.ward_id;
+    console.log("Here is the distt id ", distId);
+    try{
+        srn = await sqlFunction(`SELECT d.District_Name,n.NNN_ID,n.NNN_Name,w.Ward_No,w.Ward_Name
+        FROM wards w
+        INNER JOIN nnn n ON w.NNN_ID = n.NNN_ID AND w.Dist_ID = n.Dist_ID
+        INNER JOIN districts d ON n.Dist_ID = d.District_ID 
+        WHERE d.District_ID =? AND n.NNN_ID =?
+         `, [distId,wardId]);
+        console.log("Here is the srn Number for get ", srn);
+        if (srn.length > 0) {
+            res.json({
+                data:srn,
+                status:200,
+                message:"Data Fatched Successfully"
+            })
+        }
+        else{
+            res.json({              
+                status:400,
+                message:"No Data Found"
+            })
+        }
+    }
+    catch(e){
+        res.json({ "message": "Error in Finding Data", "response_status": 400 });
+    }   
+}
+
 
 module.exports = operations;
