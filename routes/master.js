@@ -21,28 +21,7 @@ router.post("/check", [
 });
 
 
-router.get("/getSrnDetails/:aadhar",[
-    check("aadhar", "Please enter a valid aadhar number")
-        .not()
-        .isEmpty()
-        .isLength({
-            min: 12,
-            max: 12
-        })
-], async(req, res)=>{
-    const operations = require("../controllers/user.controller");
-    operations['getSrnDetails'](req, res);
-})
 
-router.get("/storeAadhar",[], async(req, res)=>{
-    const operations = require("../controllers/user.controller");
-    operations['storeAadharData'](req, res);
-})
-
-router.get("/checkMe",[], async(req, res)=>{
-    const operations = require("../controllers/user.controller");
-    operations['checkMe'](req, res);
-})
 
 router.get("/district",[], async(req, res)=>{
     const operations = require("../controllers/master.controller");
@@ -74,7 +53,7 @@ router.get("/gp/:dist_id?/:block_id?",[], async(req, res)=>{
     operations['panchaytlist'](req, res);
 })
 
-router.get("/wd/:dist_id?/:ward_id?",[], async(req, res)=>{
+router.get("/wd/:dist_id?/:nagarId?",[], async(req, res)=>{
     const operations = require("../controllers/master.controller");
     operations['wardlist'](req, res);
 })
