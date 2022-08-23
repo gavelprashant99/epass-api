@@ -3,6 +3,7 @@ cors = require('cors');
 var svgCaptcha = require('svg-captcha');
 const bodyParser = require("body-parser");
 const master=require("./routes/master");
+const epass=require("./routes/epass.js");
 const whiteList = require("./controllers/util");
 
 const app = express();
@@ -32,3 +33,4 @@ app.listen(PORT, (req, res) => {
 });
 
 app.use("/master", master);
+app.use("/user", epass);
