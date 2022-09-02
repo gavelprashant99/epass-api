@@ -31,8 +31,8 @@ operations['userRegistration'] = async (req, res) =>{
     
     try{
 
-        let username = req.body.name;
-        let mobile = req.body.mobile;
+        let username = req.body.fnam;
+        let mobile = req.body.Number;
         let dob = req.body.dob;
         let email = req.body.email;
         let gender = req.body.gender;

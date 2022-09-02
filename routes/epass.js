@@ -6,7 +6,7 @@ router.post("/userRegistration", [
     check("u_name", "Please enter your name")
         .not()
         .isEmpty(),
-    check("mobile", "Please enter your name")
+    check("mobile", "Please enter your mobile number")
         .not()
         .isEmpty(),
     check("dob", "Please enter a valid DOB")
