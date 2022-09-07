@@ -205,5 +205,31 @@ operations['wardlist'] = async (req, res) =>{
     }   
 }
 
+operations['departments'] = async (req, res) =>{
+    
+    try{
+        srn = await sqlFunction(` SELECT md.dept_code, md.dept_name_eng, md.dept_name_hindi FROM master_department md
+        ORDER BY md.priority `, []);
+      //  console.log("Here is the srn Number for get ", srn);
+        if (srn.length > 0) {
+            res.json({
+                data:srn,
+                status:200,
+                message:"Data Fatched Successfully"
+            })
+        }
+        else{
+            res.json({              
+                status:400,
+                message:"No Data Found"
+            })
+        }
+    }
+    catch(e){
+        res.json({ "message": "Error in Finding Data", "response_status": 400 });
+    }
+    
+}
+
 
 module.exports = operations;

@@ -57,5 +57,9 @@ router.get("/wd/:dist_id?/:nagarId?",[], async(req, res)=>{
     const operations = require("../controllers/master.controller");
     operations['wardlist'](req, res);
 })
+router.get("/departments",[], async(req, res)=>{
+    const operations = require("../controllers/master.controller");
+    operations['departments'](req,res);
+})
 
 module.exports = router;
