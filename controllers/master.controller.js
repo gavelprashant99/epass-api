@@ -57,6 +57,32 @@ operations['district'] = async (req, res) =>{
 
 //villagelist
 
+operations['villagelist'] = async (req, res) =>{
+    var blockId = req.params.block_id;
+    console.log("Here is the distt id ", blockId);
+    try{
+        srn = await sqlFunction(`SELECT * FROM master_villages mv 
+        INNER JOIN temp_block tb ON tb.district_id = mv.district_id  AND tb.block_id = mv.block_id
+        WHERE mv.district_id =44 AND tb.district_id = 44 AND mv.block_id = 2 `, [blockId]);
+        console.log("Here is the srn Number for get ", srn);
+        if (srn.length > 0) {
+            res.json({
+                data:srn,
+                status:200,
+                message:"Data Fatched Successfully"
+            })
+        }
+        else{
+            res.json({              
+                status:400,
+                message:"No Data Found"
+            })
+        }
+    }
+    catch(e){
+        res.json({ "message": "Error in Finding Data", "response_status": 400 });
+    }   
+}
 
 //blocklist
 
