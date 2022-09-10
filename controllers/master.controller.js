@@ -231,5 +231,59 @@ operations['wardlist'] = async (req, res) =>{
     }   
 }
 
+//id proof
+
+operations['idproof'] = async (req, res) =>{
+    
+    try{
+        srn = await sqlFunction(`SELECT id_name FROM master_identity_proof `, []);
+        console.log("Here is the srn Number for get ", srn);
+        if (srn.length > 0) {
+            res.json({
+                data:srn,
+                status:200,
+                message:"Data Fatched Successfully"
+            })
+        }
+        else{
+            res.json({              
+                status:400,
+                message:"No Data Found"
+            })
+        }
+    }
+    catch(e){
+        res.json({ "message": "Error in Finding Data", "response_status": 400 });
+    }
+    
+}
+
+//department list 
+
+operations['departmentlist'] = async (req, res) =>{
+    
+    try{
+        srn = await sqlFunction(`SELECT dept_name_eng FROM master_department `, []);
+        console.log("Here is the srn Number for get ", srn);
+        if (srn.length > 0) {
+            res.json({
+                data:srn,
+                status:200,
+                message:"Data Fatched Successfully"
+            })
+        }
+        else{
+            res.json({              
+                status:400,
+                message:"No Data Found"
+            })
+        }
+    }
+    catch(e){
+        res.json({ "message": "Error in Finding Data", "response_status": 400 });
+    }
+    
+}
+
 
 module.exports = operations;

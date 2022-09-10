@@ -58,4 +58,14 @@ router.get("/wd/:dist_id?/:nagarId?",[], async(req, res)=>{
     operations['wardlist'](req, res);
 })
 
+router.get("/idproof",[], async(req, res)=>{
+    const operations = require("../controllers/master.controller");
+    operations['idproof'](req,res);
+})
+
+router.get("/departmentlist",[], async(req, res)=>{
+    const operations = require("../controllers/master.controller");
+    operations['departmentlist'](req,res);
+})
+
 module.exports = router;
