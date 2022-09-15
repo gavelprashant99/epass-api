@@ -69,4 +69,10 @@ router.post("/userRegistration", [
 });
 
 
+router.get("/pendingTickets",[], async(req, res)=>{
+    const operations = require("../controllers/epass.controller");
+    operations['pendingTickets'](req,res);
+})
+
+
 module.exports = router;

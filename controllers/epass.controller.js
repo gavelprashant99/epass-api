@@ -77,6 +77,36 @@ operations['userRegistration'] = async (req, res) =>{
     }
     
 }
+ operations['pendingTickets'] = async (req, res)=>{
+    try{
+        pendingTickets = await sqlFunction(`SELECT tt.ticket_id, tu.u_name, tu.mobile, 
+        mdd.district_name, mp.id_name, 
+        md.dept_name_hindi, tt.request_date, tt.request_time, tt.room_no FROM tbl_ticket tt
+        INNER JOIN tbl_user_details tu ON tt.request_by = tu.user_id
+        INNER JOIN master_department md ON tt.request_dept = md.dept_code
+        INNER JOIN master_district mdd ON tu.district_id = mdd.district_id
+        INNER JOIN master_identity_proof mp ON tt.identity_type = mp.id
+        WHERE tt.request_date = CURDATE() AND tt.scanned_on IS NULL AND tt.permitted IS NULL ;        
+         `, []);
+        console.log("Here is the srn Number for get ", pendingTickets);
+        if (pendingTickets.length > 0) {
+            res.json({
+                data:pendingTickets,
+                status:200,
+                message:"Data Fatched Successfully"
+            })
+        }
+        else{
+            res.json({              
+                status:400,
+                message:"No Data Found"
+            })
+        }
+    }
+    catch(e){
+        res.json({ "message": "Error in Finding Data", "response_status": 400 });
+    }
+ }
 
 
 module.exports = operations;
