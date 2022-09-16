@@ -46,6 +46,12 @@ router.post("/userRegistration", [
     check("district_id", "Please select a valid district ")
         .not()
         .isEmpty(),
+    check("block_id","please enter block" )
+         .not()
+         .isEmpty(),
+    check("nagar_id","please select nagar ")
+         .not()
+         .isEmpty(),
     check("block_nagar_id", "Please select a valid block nagar")
         .not()
         .isEmpty(),
@@ -72,7 +78,58 @@ router.post("/userRegistration", [
 router.get("/pendingTickets",[], async(req, res)=>{
     const operations = require("../controllers/epass.controller");
     operations['pendingTickets'](req,res);
-})
+});
+
+router.post("/generateTicket", [
+    check("ticket_id","ticket number")
+    .not()
+    .isEmpty(),
+    check("request_date","please enter a requested date")
+    .not()
+    .isEmpty(),
+    check("request_time","please enter a requested time")
+    .not()
+    .isEmpty(),
+    check("request_by","please enter requested by")
+    .not()
+    .isEmpty(),
+    check("mobile_no","enter mobile number")
+    .not()
+    .isEmpty(),
+    check("request_dept","enter requested department")
+    .not()
+    .isEmpty(),
+    check("room_no","enter room number")
+    .not()
+    .isEmpty(),
+    check("reason","enter reason")
+    .not()
+    .isEmpty(),
+    check("identity_type","enter identity type")
+    .not()
+    .isEmpty(),
+    check("scanned_on","enter scanned on ")
+    .not()
+    .isEmpty(),
+    check("scanned_by","enter scanned by")
+    .not()
+    .isEmpty(),
+    check("pass_type","enter pass type")
+    .not()
+    .isEmpty(),
+    check("latitude","latitude")
+    .not()
+    .isEmpty(),
+    check("longitude","longitude")
+    .not()
+    .isEmpty(),
+
+], async (req, res) => {
+    const operations = require("../controllers/epass.controller");
+    operations['generateTicket'](req, res);
+});
+    
+
 
 
 module.exports = router;
