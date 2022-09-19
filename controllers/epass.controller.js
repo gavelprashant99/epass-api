@@ -113,7 +113,7 @@ operations['userRegistration'] = async (req, res) =>{
 operations['generateTicket'] = async (req,res) =>{
     try{
 
-        let ticketid = req.body.tnumid;
+        let ticketid = new Date().getTime();
         let reqdate = req.body.date;
         let reqtime = req.body.timel;
         let reqby = req.body.reqby;
