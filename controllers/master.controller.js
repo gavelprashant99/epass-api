@@ -263,7 +263,7 @@ operations['idproof'] = async (req, res) =>{
 operations['departmentlist'] = async (req, res) =>{
     
     try{
-        srn = await sqlFunction(`SELECT dept_name_eng FROM master_department `, []);
+        srn = await sqlFunction(`SELECT dept_code, dept_name_eng FROM master_department `, []);
         console.log("Here is the srn Number for get ", srn);
         if (srn.length > 0) {
             res.json({

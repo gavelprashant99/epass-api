@@ -113,7 +113,7 @@ operations['userRegistration'] = async (req, res) =>{
 operations['generateTicket'] = async (req,res) =>{
     try{
 
-        let ticketid = new Date().getTime();
+        let ticketid = (Math.random()*100000)+1;
         let reqdate = req.body.date;
         let reqtime = req.body.timel;
         let reqby = req.body.reqby;

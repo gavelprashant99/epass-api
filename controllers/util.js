@@ -17,6 +17,7 @@ operations['randomString'] = (length, chars) => {
 operations['originsWhitelist'] = [
     'http://localhost:4400',
     'http://localhost:4600',
-    'http://localhost:4200'     //this is my front-end url for development
+    'http://localhost:4200',     //this is my front-end url for development
+    'http://localhost:4300',     //this is my admin panel url for development
   ];
 module.exports = operations;
